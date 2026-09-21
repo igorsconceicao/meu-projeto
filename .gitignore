@@ -1,0 +1,44 @@
+# Dependencias
+node_modules/
+vendor/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Build
+dist/
+build/
+target/
+*.egg-info/
+.next/
+out/
+
+# Ambiente e segredos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Cache e ferramentas
+.cache/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+coverage/
+.coverage
+*.log
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Editores
+.idea/
+.vscode/*
+!.vscode/settings.json
+*.swp
+
+# Claude Code (config local da maquina, nao versionada)
+.claude/settings.local.json
