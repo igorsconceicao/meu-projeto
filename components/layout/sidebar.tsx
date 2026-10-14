@@ -1,0 +1,74 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Gauge } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { NAVEGACAO } from "./navegacao";
+
+export function Sidebar({ className }: { className?: string }) {
+  const caminho = usePathname();
+
+  return (
+    <aside
+      className={cn(
+        "flex h-full w-64 shrink-0 flex-col border-r bg-card/40",
+        className,
+      )}
+    >
+      <div className="flex h-16 items-center gap-2 border-b px-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <Gauge className="h-5 w-5" />
+        </div>
+        <div className="flex flex-col leading-tight">
+          <span className="text-sm font-semibold">Inteligência</span>
+          <span className="text-xs text-muted-foreground">
+            Automotiva · BR
+          </span>
+        </div>
+      </div>
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        {NAVEGACAO.map((grupo) => (
+          <div key={grupo.titulo} className="mb-6">
+            <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {grupo.titulo}
+            </p>
+            <ul className="flex flex-col gap-0.5">
+              {grupo.itens.map((item) => {
+                const ativo =
+                  item.href === "/"
+                    ? caminho === "/"
+                    : caminho.startsWith(item.href);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
+                        ativo
+                          ? "bg-primary/10 text-primary"
+                          : "text-foreground/80 hover:bg-accent hover:text-foreground",
+                      )}
+                    >
+                      <item.icone className="h-4 w-4 shrink-0" />
+                      <div className="flex flex-col leading-tight">
+                        <span className="font-medium">{item.titulo}</span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {item.descricao}
+                        </span>
+                      </div>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+      <div className="border-t px-4 py-3 text-xs text-muted-foreground">
+        <p className="font-medium text-foreground">v0.1 · demo</p>
+        <p>Dados ainda são de demonstração</p>
+      </div>
+    </aside>
+  );
+}
