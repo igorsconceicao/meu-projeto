@@ -33,6 +33,7 @@ export default async function PaginaAdmin() {
   ]);
 
   const veiculosComFoto = veiculos.filter((v) => v.fotoPrincipalUrl).length;
+  const veiculosPublicados = veiculos.filter((v) => v.completude?.publicavel).length;
   const veiculosComLink = veiculos.filter((v) => v.linkOficialUrl).length;
   const montadorasComLogo = montadoras.filter((m) => m.logotipoUrl).length;
 
@@ -48,7 +49,7 @@ export default async function PaginaAdmin() {
     {
       titulo: "Veículos",
       valor: veiculos.length,
-      descricao: `${veiculosComFoto} com foto · ${veiculosComLink} com link oficial`,
+      descricao: `${veiculosPublicados} publicados · ${veiculos.length - veiculosPublicados} em verificação · ${veiculosComFoto} com foto · ${veiculosComLink} com link oficial`,
       icone: Car,
       href: "/admin/veiculos",
       acao: "Gerenciar",

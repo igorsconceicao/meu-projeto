@@ -1,3 +1,4 @@
+import { buscarVeiculos } from "@/lib/dados/veiculos";
 import { criarClienteSupabaseServidor } from "@/lib/supabase/server";
 import type { Montadora } from "@/lib/tipos";
 
@@ -15,7 +16,11 @@ type MontadoraRow = {
   atualizado_em: string;
 };
 
-function mapearMontadora(row: MontadoraRow, qtdModelos?: number): Montadora {
+function mapearMontadora(
+  row: MontadoraRow,
+  qtdModelos?: number,
+  qtdEmVerificacao?: number,
+): Montadora {
   return {
     id: row.id,
     slug: row.slug,
@@ -27,6 +32,7 @@ function mapearMontadora(row: MontadoraRow, qtdModelos?: number): Montadora {
     logotipoCredito: row.logotipo_credito,
     siteOficialUrl: row.site_oficial_url,
     qtdModelos,
+    qtdEmVerificacao,
     criadoEm: row.criado_em,
     atualizadoEm: row.atualizado_em,
   };
@@ -40,18 +46,21 @@ export async function buscarMontadoras(): Promise<Montadora[]> {
     .order("nome");
   if (error) throw error;
 
-  // Contagem de modelos por montadora (query separada e barata)
-  const { data: contagens } = await supabase
-    .from("veiculos")
-    .select("montadora_id");
-  const porId = new Map<string, number>();
-  for (const row of contagens ?? []) {
-    const id = (row as { montadora_id: string }).montadora_id;
-    porId.set(id, (porId.get(id) ?? 0) + 1);
+  // Contagem por montadora: publicados (pacote mínimo completo) × em verificação
+  const veiculos = await buscarVeiculos();
+  const publicados = new Map<string, number>();
+  const emVerificacao = new Map<string, number>();
+  for (const v of veiculos) {
+    const alvo = v.completude?.publicavel ? publicados : emVerificacao;
+    alvo.set(v.montadoraId, (alvo.get(v.montadoraId) ?? 0) + 1);
   }
 
   return (montadoras ?? []).map((m) =>
-    mapearMontadora(m as MontadoraRow, porId.get(m.id) ?? 0),
+    mapearMontadora(
+      m as MontadoraRow,
+      publicados.get(m.id) ?? 0,
+      emVerificacao.get(m.id) ?? 0,
+    ),
   );
 }
 

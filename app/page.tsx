@@ -35,27 +35,30 @@ import {
 } from "@/components/ui/table";
 import { buscarMontadoras } from "@/lib/dados/montadoras";
 import { buscarVeiculos } from "@/lib/dados/veiculos";
-import {
-  OPORTUNIDADES,
-  RESUMO_DASHBOARD,
-  VENDAS,
-} from "@/lib/dados-demo";
+import { OPORTUNIDADES, VENDAS } from "@/lib/dados-demo";
 import { formatarData, formatarNumero } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export default async function PaginaDashboard() {
-  const [montadoras, veiculos] = await Promise.all([
+  const [montadoras, todos] = await Promise.all([
     buscarMontadoras(),
     buscarVeiculos(),
   ]);
+  const veiculos = todos.filter((v) => v.completude?.publicavel);
+  const emVerificacao = todos.length - veiculos.length;
+  const ultimaVerificacao = todos
+    .map((v) => v.verificadoBrEm)
+    .filter((d): d is string => !!d)
+    .sort()
+    .at(-1);
 
   const indicadores = [
     {
-      titulo: "Veículos monitorados",
+      titulo: "Veículos publicados",
       valor: veiculos.length,
       icone: Car,
-      descricao: "Catálogo técnico ativo",
+      descricao: `Pacote mínimo completo · ${emVerificacao} em verificação`,
     },
     {
       titulo: "Montadoras",
@@ -139,14 +142,14 @@ export default async function PaginaDashboard() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex-row items-start justify-between space-y-0">
             <div>
-              <CardTitle>Status da última atualização</CardTitle>
+              <CardTitle>Status do catálogo</CardTitle>
               <CardDescription>
-                A rotina semanal roda toda segunda-feira às 09:00 (BRT) pelo GitHub Actions.
+                Curadoria a partir dos sites oficiais brasileiros das montadoras. A rotina semanal automática ainda está em construção.
               </CardDescription>
             </div>
-            <Badge variant="success" className="gap-1">
+            <Badge variant="secondary" className="gap-1">
               <CheckCircle2 className="h-3 w-3" />
-              Pronto
+              Curadoria
             </Badge>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -154,13 +157,13 @@ export default async function PaginaDashboard() {
               <div className="rounded-md border p-4">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  Última execução
+                  Última verificação
                 </div>
                 <p className="mt-2 text-sm font-medium">
-                  {formatarData(RESUMO_DASHBOARD.ultimaExecucao)} · 09:12
+                  {ultimaVerificacao ? formatarData(ultimaVerificacao) : "—"}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Fontes consultadas: 0 reais · 0 novidades automatizadas
+                  {veiculos.length} publicados · {emVerificacao} aguardando dados mínimos
                 </p>
               </div>
               <div className="rounded-md border p-4">
@@ -169,7 +172,7 @@ export default async function PaginaDashboard() {
                   Catálogo no banco
                 </div>
                 <p className="mt-2 text-sm font-medium">
-                  {montadoras.length} montadoras · {veiculos.length} veículos
+                  {montadoras.length} montadoras · {todos.length} veículos cadastrados
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Edite no{" "}
@@ -180,7 +183,7 @@ export default async function PaginaDashboard() {
               </div>
             </div>
             <div className="rounded-md border border-dashed p-4 text-sm">
-              <p className="font-medium">Pipeline semanal — 7 etapas</p>
+              <p className="font-medium">Pipeline semanal planejado — 7 etapas</p>
               <ol className="mt-2 grid list-decimal gap-1 pl-4 text-xs text-muted-foreground sm:grid-cols-2">
                 <li>Scan de feeds e sitemaps</li>
                 <li>Fetch respeitando robots.txt</li>
@@ -259,11 +262,11 @@ export default async function PaginaDashboard() {
           <CardContent>
             {novidades.length === 0 ? (
               <div className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
-                Nenhum veículo cadastrado. Vá em{" "}
+                Nenhum veículo com o pacote mínimo completo ainda. Veja as pendências em{" "}
                 <Link href="/admin/veiculos" className="font-medium text-primary hover:underline">
                   Admin → Veículos
-                </Link>{" "}
-                para adicionar.
+                </Link>
+                .
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

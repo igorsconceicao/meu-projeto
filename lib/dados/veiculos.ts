@@ -1,5 +1,7 @@
+import { avaliarCompletude } from "@/lib/completude";
+import { buscarDadosTecnicos, dadosTecnicosVazios } from "@/lib/dados/tecnicos";
 import { criarClienteSupabaseServidor } from "@/lib/supabase/server";
-import type { Veiculo } from "@/lib/tipos";
+import type { DadosTecnicos, Veiculo } from "@/lib/tipos";
 
 type VeiculoRow = {
   id: string;
@@ -78,21 +80,35 @@ const SELECT_COM_MONTADORA = `
   )
 `;
 
+/** Todos os veículos (inclusive em verificação), com o checklist de completude. */
 export async function buscarVeiculos(): Promise<Veiculo[]> {
   const supabase = await criarClienteSupabaseServidor();
-  const { data, error } = await supabase
-    .from("veiculos")
-    .select(SELECT_COM_MONTADORA)
-    .order("ano_modelo", { ascending: false, nullsFirst: false })
-    .order("data_lancamento_br", { ascending: false, nullsFirst: false })
-    .order("nome_comercial");
+  const [{ data, error }, tecnicos] = await Promise.all([
+    supabase
+      .from("veiculos")
+      .select(SELECT_COM_MONTADORA)
+      .order("ano_modelo", { ascending: false, nullsFirst: false })
+      .order("data_lancamento_br", { ascending: false, nullsFirst: false })
+      .order("nome_comercial"),
+    buscarDadosTecnicos(),
+  ]);
   if (error) throw error;
-  return ((data as unknown as VeiculoRow[]) ?? []).map(mapearVeiculo);
+  return ((data as unknown as VeiculoRow[]) ?? []).map((row) => {
+    const v = mapearVeiculo(row);
+    v.tecnicos = tecnicos.get(v.id) ?? dadosTecnicosVazios();
+    v.completude = avaliarCompletude(v, v.tecnicos);
+    return v;
+  });
+}
+
+/** Só os veículos com o pacote mínimo completo — usados nas páginas públicas. */
+export async function buscarVeiculosPublicados(): Promise<Veiculo[]> {
+  return (await buscarVeiculos()).filter((v) => v.completude?.publicavel);
 }
 
 export async function buscarVeiculoPorSlug(
   slug: string,
-): Promise<Veiculo | null> {
+): Promise<{ veiculo: Veiculo; tecnicos: DadosTecnicos } | null> {
   const supabase = await criarClienteSupabaseServidor();
   const { data, error } = await supabase
     .from("veiculos")
@@ -100,7 +116,13 @@ export async function buscarVeiculoPorSlug(
     .eq("slug", slug)
     .maybeSingle();
   if (error) throw error;
-  return data ? mapearVeiculo(data as unknown as VeiculoRow) : null;
+  if (!data) return null;
+  const veiculo = mapearVeiculo(data as unknown as VeiculoRow);
+  const tecnicos =
+    (await buscarDadosTecnicos(veiculo.id)).get(veiculo.id) ?? dadosTecnicosVazios();
+  veiculo.tecnicos = tecnicos;
+  veiculo.completude = avaliarCompletude(veiculo, tecnicos);
+  return { veiculo, tecnicos };
 }
 
 export async function listarSlugsDeVeiculos(): Promise<string[]> {

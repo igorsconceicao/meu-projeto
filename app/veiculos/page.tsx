@@ -4,6 +4,7 @@ import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
 import { FotoVeiculo } from "@/components/midia/foto-veiculo";
 import { LogoMontadora } from "@/components/midia/logo-montadora";
 import { SeloVerificadoBr } from "@/components/midia/selo-verificado-br";
+import { ResumoTecnicoCard } from "@/components/tecnico/resumo-card";
 import { Badge } from "@/components/ui/badge";
 import { BadgeConfianca } from "@/components/ui/badge-confianca";
 import { Input } from "@/components/ui/input";
@@ -25,18 +26,25 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function PaginaVeiculos() {
-  const veiculos = await buscarVeiculos();
+  const todos = await buscarVeiculos();
+  const veiculos = todos.filter((v) => v.completude?.publicavel);
+  const emVerificacao = todos.length - veiculos.length;
 
   return (
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Catálogo de veículos"
-        descricao="Somente modelos vendidos (ou com venda anunciada oficialmente) no Brasil, conferidos no site oficial brasileiro ou na sala de imprensa da montadora. Fotos da versão brasileira, com crédito."
+        descricao="Somente modelos vendidos no Brasil e com o pacote mínimo completo: foto real da versão brasileira, fonte oficial brasileira, motor e câmbio, central multimídia (tela, CarPlay e Android Auto) e tipo de farol — cada dado com fonte e data."
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          {veiculos.length} modelo{veiculos.length === 1 ? "" : "s"} no catálogo
+          {veiculos.length} modelo{veiculos.length === 1 ? "" : "s"} publicado{veiculos.length === 1 ? "" : "s"}
+          {emVerificacao > 0 ? (
+            <span className="text-muted-foreground/80">
+              {" "}· {emVerificacao} em verificação (entram quando os dados mínimos forem confirmados)
+            </span>
+          ) : null}
         </p>
         <Input
           placeholder="Filtrar por marca ou modelo..."
@@ -47,11 +55,11 @@ export default async function PaginaVeiculos() {
 
       {veiculos.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
-          Nenhum veículo cadastrado. Use o{" "}
+          Nenhum veículo com o pacote mínimo completo ainda. Acompanhe as pendências no{" "}
           <Link className="font-medium text-primary hover:underline" href="/admin/veiculos">
             painel administrativo
-          </Link>{" "}
-          para adicionar.
+          </Link>
+          .
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -99,6 +107,7 @@ export default async function PaginaVeiculos() {
                   <Badge variant="secondary">{v.categoria}</Badge>
                   <Badge variant="secondary">{v.propulsao}</Badge>
                 </div>
+                <ResumoTecnicoCard tecnicos={v.tecnicos} />
                 {v.dataLancamentoBr ? (
                   <div className="flex items-center justify-between pt-1 text-xs text-muted-foreground">
                     <span>Lançamento BR</span>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pencil, PlusCircle } from "lucide-react";
+import { CheckCircle2, Eye, Pencil, PlusCircle } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
 import { BotaoExcluirVeiculo } from "@/components/admin/botoes-excluir";
 import { FotoVeiculo } from "@/components/midia/foto-veiculo";
@@ -20,12 +20,13 @@ export const dynamic = "force-dynamic";
 
 export default async function PaginaAdminVeiculos() {
   const veiculos = await buscarVeiculos();
+  const publicados = veiculos.filter((v) => v.completude?.publicavel).length;
 
   return (
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Veículos"
-        descricao={`${veiculos.length} modelos cadastrados.`}
+        descricao={`${veiculos.length} modelos cadastrados · ${publicados} publicados no site · ${veiculos.length - publicados} em verificação. Um modelo só aparece no site quando todos os itens obrigatórios estão confirmados com fonte oficial.`}
         acoes={
           <Button asChild>
             <Link href="/admin/veiculos/novo">
@@ -46,6 +47,7 @@ export default async function PaginaAdminVeiculos() {
               <TableHead>Categoria</TableHead>
               <TableHead>Propulsão</TableHead>
               <TableHead>Situação</TableHead>
+              <TableHead>Publicação</TableHead>
               <TableHead>Foto</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -53,7 +55,7 @@ export default async function PaginaAdminVeiculos() {
           <TableBody>
             {veiculos.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={9} className="py-10 text-center text-sm text-muted-foreground">
                   Nenhum veículo. Clique em &ldquo;Novo veículo&rdquo; acima.
                 </TableCell>
               </TableRow>
@@ -85,6 +87,25 @@ export default async function PaginaAdminVeiculos() {
                   <TableCell>
                     <Badge variant="outline">{v.situacao}</Badge>
                   </TableCell>
+                  <TableCell className="max-w-[220px]">
+                    {v.completude?.publicavel ? (
+                      <Badge variant="success" className="gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Publicado
+                      </Badge>
+                    ) : (
+                      <div className="space-y-1">
+                        <Badge variant="warning">Em verificação</Badge>
+                        <p className="text-[11px] leading-snug text-muted-foreground">
+                          Falta:{" "}
+                          {v.completude?.obrigatorios
+                            .filter((i) => !i.ok)
+                            .map((i) => i.rotulo.toLowerCase())
+                            .join(", ")}
+                        </p>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="h-10 w-16">
                       <FotoVeiculo
@@ -100,6 +121,11 @@ export default async function PaginaAdminVeiculos() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="inline-flex gap-1">
+                      <Button variant="ghost" size="icon" asChild aria-label={`Ver ficha de ${v.nomeComercial}`}>
+                        <Link href={`/veiculos/${v.slug}`}>
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                      </Button>
                       <Button variant="ghost" size="icon" asChild aria-label={`Editar ${v.nomeComercial}`}>
                         <Link href={`/admin/veiculos/${v.id}`}>
                           <Pencil className="h-4 w-4" />

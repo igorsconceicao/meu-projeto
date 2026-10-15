@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Calendar, Car, Zap } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Calendar, Car, ExternalLink, Zap } from "lucide-react";
 import { BotaoSiteOficial } from "@/components/midia/botao-site-oficial";
 import { GaleriaVeiculo } from "@/components/midia/galeria-veiculo";
 import { HeroVeiculo } from "@/components/midia/hero-veiculo";
 import { VideoOficialEmbed } from "@/components/midia/video-oficial-embed";
-import { AlertaDemo } from "@/components/ui/alerta-demo";
+import { BadgeEstado, FonteDado, ListaChecklist } from "@/components/tecnico/elementos";
 import { Badge } from "@/components/ui/badge";
 import { BadgeConfianca } from "@/components/ui/badge-confianca";
 import { Button } from "@/components/ui/button";
@@ -31,30 +31,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { fonteOficialBr } from "@/lib/completude";
 import { buscarVeiculoPorSlug } from "@/lib/dados/veiculos";
-import {
-  CODIGOS_OEM,
-  INTERRUPTORES,
-  LAMPADAS,
-  MULTIMIDIAS,
-  PALHETAS,
-  type EstadoRecurso,
-} from "@/lib/dados-demo";
+import { criarClienteSupabaseServidor } from "@/lib/supabase/server";
+import type { EstadoConectividade, Rastreio } from "@/lib/tipos";
 import { formatarData, formatarPreco } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-
-const ROTULOS_ESTADO: Record<EstadoRecurso, { label: string; variant: "success" | "secondary" | "warning" }> = {
-  confirmado: { label: "Confirmado", variant: "success" },
-  nao_disponivel: { label: "Não disponível", variant: "secondary" },
-  nao_identificado: { label: "Não identificado", variant: "warning" },
-  depende_versao: { label: "Depende da versão", variant: "warning" },
-};
-
-function BadgeEstado({ estado }: { estado: EstadoRecurso }) {
-  const cfg = ROTULOS_ESTADO[estado];
-  return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
-}
 
 export async function generateMetadata({
   params,
@@ -62,8 +45,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const veiculo = await buscarVeiculoPorSlug(slug);
-  return { title: veiculo ? `${veiculo.marca} ${veiculo.nomeComercial}` : "Veículo" };
+  const r = await buscarVeiculoPorSlug(slug);
+  return { title: r ? `${r.veiculo.marca} ${r.veiculo.nomeComercial}` : "Veículo" };
 }
 
 export default async function PaginaFichaVeiculo({
@@ -72,16 +55,36 @@ export default async function PaginaFichaVeiculo({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const veiculo = await buscarVeiculoPorSlug(slug);
-  if (!veiculo) {
+  const r = await buscarVeiculoPorSlug(slug);
+  if (!r) {
     notFound();
   }
+  const { veiculo, tecnicos } = r;
+  const completude = veiculo.completude!;
 
-  const multimidia = MULTIMIDIAS.find((m) => m.veiculoSlug === slug);
-  const lampadas = LAMPADAS.filter((l) => l.veiculoSlug === slug);
-  const palhetas = PALHETAS.filter((p) => p.veiculoSlug === slug);
-  const interruptores = INTERRUPTORES.filter((i) => i.veiculoSlug === slug);
-  const oems = CODIGOS_OEM.filter((o) => o.aplicacoes.includes(slug));
+  // Modelos sem o pacote mínimo só ficam visíveis para o admin (pré-visualização).
+  if (!completude.publicavel) {
+    const supabase = await criarClienteSupabaseServidor();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) notFound();
+  }
+
+  const { ficha, multimidia, iluminacao, palhetas, interruptores } = tecnicos;
+  const oems = [
+    ...iluminacao.filter((i) => i.oem).map((i) => ({ codigo: i.oem!, descricao: `Lâmpada · ${i.posicao}`, dado: i as Rastreio })),
+    ...palhetas.filter((p) => p.oem).map((p) => ({ codigo: p.oem!, descricao: `Palheta · ${p.posicao}`, dado: p as Rastreio })),
+    ...interruptores.filter((i) => i.oem).map((i) => ({ codigo: i.oem!, descricao: `Interruptor · ${i.posicao}`, dado: i as Rastreio })),
+  ];
+  const fontes = Array.from(
+    new Map(
+      [ficha, multimidia, ...iluminacao, ...palhetas, ...interruptores]
+        .filter((d): d is NonNullable<typeof d> => !!d)
+        .map((d) => [d.fonteUrl, d.consultadoEm] as const),
+    ),
+  );
+  const pendencias = completude.complementares.filter((i) => !i.ok);
 
   return (
     <div className="flex flex-col gap-6">
@@ -94,6 +97,19 @@ export default async function PaginaFichaVeiculo({
         </Button>
         <BadgeConfianca nivel={veiculo.confianca} />
       </div>
+
+      {!completude.publicavel ? (
+        <div className="rounded-lg border border-warning/50 bg-warning/10 p-4 text-sm">
+          <p className="flex items-center gap-2 font-semibold text-warning">
+            <AlertTriangle className="h-4 w-4" />
+            Pré-visualização do admin — este modelo ainda não aparece no site
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Ele será publicado automaticamente quando todos os itens obrigatórios abaixo estiverem confirmados.
+          </p>
+          <ListaChecklist itens={completude.obrigatorios} className="mt-3 sm:grid-cols-2" />
+        </div>
+      ) : null}
 
       <HeroVeiculo
         veiculo={veiculo}
@@ -157,7 +173,7 @@ export default async function PaginaFichaVeiculo({
           <TabsTrigger value="geral">Geral</TabsTrigger>
           <TabsTrigger value="galeria">Galeria</TabsTrigger>
           <TabsTrigger value="multimidia">Multimídia</TabsTrigger>
-          <TabsTrigger value="lampadas">Lâmpadas</TabsTrigger>
+          <TabsTrigger value="lampadas">Iluminação</TabsTrigger>
           <TabsTrigger value="palhetas">Palhetas</TabsTrigger>
           <TabsTrigger value="interruptores">Interruptores</TabsTrigger>
           <TabsTrigger value="oem">Códigos OEM</TabsTrigger>
@@ -190,6 +206,57 @@ export default async function PaginaFichaVeiculo({
                   {veiculo.resumo}
                 </div>
               ) : null}
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>Ficha técnica básica</CardTitle>
+              <CardDescription>
+                Valores exatamente como publicados pela montadora no Brasil.
+                {ficha?.versaoReferencia ? ` Referência: ${ficha.versaoReferencia}.` : ""}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {ficha ? (
+                <div className="grid gap-4">
+                  <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                    <Linha rotulo="Motor" valor={ficha.motor ?? "A confirmar"} />
+                    <Linha rotulo="Potência" valor={ficha.potencia ?? "A confirmar"} />
+                    <Linha rotulo="Torque" valor={ficha.torque ?? "A confirmar"} />
+                    <Linha rotulo="Câmbio" valor={ficha.cambio ?? "A confirmar"} />
+                    <Linha rotulo="Tração" valor={ficha.tracao ?? "A confirmar"} />
+                    {ficha.bateria || veiculo.propulsao !== "Combustão" ? (
+                      <Linha rotulo="Bateria" valor={ficha.bateria ?? "A confirmar"} />
+                    ) : null}
+                    {ficha.autonomia || veiculo.propulsao === "Elétrico" ? (
+                      <Linha rotulo="Autonomia" valor={ficha.autonomia ?? "A confirmar"} />
+                    ) : null}
+                  </div>
+                  <FonteDado dado={ficha} />
+                </div>
+              ) : (
+                <SemDadosExplicativo
+                  titulo="Ficha técnica ainda não coletada"
+                  descricao="Motor, potência e câmbio entram quando forem confirmados na página oficial brasileira do modelo."
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>Pendências registradas</CardTitle>
+              <CardDescription>
+                Informações complementares ainda não confirmadas em fonte oficial. Nada é preenchido por suposição.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {pendencias.length ? (
+                <ListaChecklist itens={completude.complementares} className="sm:grid-cols-2" />
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhuma pendência — todos os dados complementares confirmados.</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -227,34 +294,33 @@ export default async function PaginaFichaVeiculo({
               {multimidia ? (
                 <div className="grid gap-6">
                   <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-                    <Linha rotulo="Fabricante" valor={multimidia.fabricante} />
-                    <Linha rotulo="Modelo da unidade" valor={multimidia.modeloEquipamento} />
-                    <Linha rotulo="Tela" valor={multimidia.tamanhoTela} />
-                    <Linha rotulo="Resolução" valor={multimidia.resolucao} />
-                    <Linha rotulo="Sistema operacional" valor={multimidia.so} />
-                    <Linha rotulo="Portas USB" valor={multimidia.portasUsb} />
-                    <Linha rotulo="Alto-falantes" valor={multimidia.altoFalantes} />
+                    <Linha rotulo="Tela" valor={multimidia.telaPolegadas ?? "A confirmar"} />
+                    <Linha rotulo="Sistema" valor={multimidia.sistema ?? "A confirmar"} />
                   </div>
                   <Separator />
                   <div>
-                    <p className="mb-3 text-sm font-semibold">
-                      Apple CarPlay e Android Auto
-                    </p>
+                    <p className="mb-3 text-sm font-semibold">Apple CarPlay e Android Auto</p>
                     <div className="grid gap-3 sm:grid-cols-2">
+                      <ItemConectividade titulo="Apple CarPlay (disponibilidade)" estado={multimidia.carplay} />
+                      <ItemConectividade titulo="Android Auto (disponibilidade)" estado={multimidia.androidAuto} />
                       <ItemConectividade titulo="CarPlay via cabo" estado={multimidia.carplayCabo} />
                       <ItemConectividade titulo="CarPlay sem fio" estado={multimidia.carplaySemFio} />
                       <ItemConectividade titulo="Android Auto via cabo" estado={multimidia.androidAutoCabo} />
                       <ItemConectividade titulo="Android Auto sem fio" estado={multimidia.androidAutoSemFio} />
-                      <ItemConectividade titulo="Bluetooth" estado={multimidia.bluetooth} />
-                      <ItemConectividade titulo="Wi-Fi" estado={multimidia.wifi} />
-                      <ItemConectividade titulo="GPS nativo" estado={multimidia.gpsNativo} />
                     </div>
+                    <p className="mt-3 text-xs text-muted-foreground">
+                      “Não identificado” significa que a fonte oficial não especifica — a conexão não é presumida.
+                    </p>
                   </div>
+                  {multimidia.observacoes ? (
+                    <p className="text-sm text-muted-foreground">{multimidia.observacoes}</p>
+                  ) : null}
+                  <FonteDado dado={multimidia} />
                 </div>
               ) : (
                 <SemDadosExplicativo
                   titulo="Dados de multimídia ainda não coletados"
-                  descricao="Serão preenchidos pela Iteração 4 (fichas técnicas detalhadas) ou pela Iteração 6 (coleta automática das salas de imprensa das montadoras)."
+                  descricao="Tela, CarPlay e Android Auto (cabo e sem fio) entram quando forem confirmados na página oficial brasileira do modelo."
                 />
               )}
             </CardContent>
@@ -264,41 +330,55 @@ export default async function PaginaFichaVeiculo({
         <TabsContent value="lampadas">
           <Card>
             <CardHeader>
-              <CardTitle>Lâmpadas automotivas</CardTitle>
+              <CardTitle>Iluminação e lâmpadas</CardTitle>
               <CardDescription>
-                Códigos padronizados (H7, H11, HB3...) × OEM original. Nunca presumir equivalência.
+                Tecnologia por posição conforme a montadora. Códigos (H4, H7, HB3...) e OEM só quando publicados em fonte oficial — nunca presumir equivalência.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              {lampadas.length ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Posição</TableHead>
-                      <TableHead>Código padrão</TableHead>
-                      <TableHead>Tecnologia</TableHead>
-                      <TableHead>Potência</TableHead>
-                      <TableHead>OEM</TableHead>
-                      <TableHead>Confiança</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lampadas.map((l, idx) => (
-                      <TableRow key={`${l.posicao}-${idx}`}>
-                        <TableCell className="font-medium">{l.posicao}</TableCell>
-                        <TableCell><Badge variant="secondary">{l.codigo}</Badge></TableCell>
-                        <TableCell>{l.tecnologia}</TableCell>
-                        <TableCell>{l.potencia}</TableCell>
-                        <TableCell className="font-mono text-xs">{l.oem}</TableCell>
-                        <TableCell><BadgeConfianca nivel={l.confianca} /></TableCell>
+              {iluminacao.length ? (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Posição</TableHead>
+                        <TableHead>Tecnologia</TableHead>
+                        <TableHead>Código</TableHead>
+                        <TableHead>Potência</TableHead>
+                        <TableHead>OEM</TableHead>
+                        <TableHead>Confiança</TableHead>
                       </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {iluminacao.map((l) => (
+                        <TableRow key={l.posicao}>
+                          <TableCell className="font-medium">
+                            {l.posicao}
+                            {l.versoes ? (
+                              <p className="text-xs font-normal text-muted-foreground">{l.versoes}</p>
+                            ) : null}
+                          </TableCell>
+                          <TableCell>{l.tecnologia ?? "A confirmar"}</TableCell>
+                          <TableCell>
+                            {l.codigo ? <Badge variant="secondary">{l.codigo}</Badge> : <span className="text-muted-foreground">A confirmar</span>}
+                          </TableCell>
+                          <TableCell>{l.potencia ?? <span className="text-muted-foreground">A confirmar</span>}</TableCell>
+                          <TableCell className="font-mono text-xs">{l.oem ?? <span className="font-sans text-muted-foreground">A confirmar</span>}</TableCell>
+                          <TableCell><BadgeConfianca nivel={l.confianca} /></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="space-y-2 p-4">
+                    {Array.from(new Map(iluminacao.map((l) => [l.fonteUrl, l])).values()).map((l) => (
+                      <FonteDado key={l.fonteUrl} dado={l} />
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                </>
               ) : (
                 <SemDadosExplicativo
-                  titulo="Lâmpadas ainda não mapeadas"
-                  descricao="Códigos H7, H11, HB3 e OEM específicos serão cadastrados pela Iteração 4 ou coletados automaticamente de catálogos oficiais."
+                  titulo="Iluminação ainda não mapeada"
+                  descricao="A tecnologia dos faróis entra quando confirmada na página oficial brasileira; códigos de lâmpada e OEM ficam como pendência até haver fonte oficial."
                 />
               )}
             </CardContent>
@@ -322,20 +402,18 @@ export default async function PaginaFichaVeiculo({
                       <TableHead>Medida (mm)</TableHead>
                       <TableHead>Medida (pol)</TableHead>
                       <TableHead>Encaixe</TableHead>
-                      <TableHead>Formato</TableHead>
                       <TableHead>OEM</TableHead>
                       <TableHead>Confiança</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {palhetas.map((p, idx) => (
-                      <TableRow key={idx}>
+                    {palhetas.map((p) => (
+                      <TableRow key={p.posicao}>
                         <TableCell className="font-medium">{p.posicao}</TableCell>
-                        <TableCell>{p.medidaMm}</TableCell>
-                        <TableCell>{p.medidaPol}</TableCell>
-                        <TableCell>{p.encaixe}</TableCell>
-                        <TableCell>{p.formato}</TableCell>
-                        <TableCell className="font-mono text-xs">{p.oem}</TableCell>
+                        <TableCell>{p.medidaMm ?? "A confirmar"}</TableCell>
+                        <TableCell>{p.medidaPol ?? "A confirmar"}</TableCell>
+                        <TableCell>{p.encaixe ?? "A confirmar"}</TableCell>
+                        <TableCell className="font-mono text-xs">{p.oem ?? "A confirmar"}</TableCell>
                         <TableCell><BadgeConfianca nivel={p.confianca} /></TableCell>
                       </TableRow>
                     ))}
@@ -344,7 +422,7 @@ export default async function PaginaFichaVeiculo({
               ) : (
                 <SemDadosExplicativo
                   titulo="Palhetas ainda não mapeadas"
-                  descricao="Medidas específicas por versão e ano-modelo serão coletadas pela Iteração 4."
+                  descricao="Medidas (mm/pol), encaixe e OEM ficam como pendência até serem confirmados em fonte oficial (manual do proprietário ou catálogo da montadora)."
                 />
               )}
             </CardContent>
@@ -364,22 +442,22 @@ export default async function PaginaFichaVeiculo({
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Posição</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Pinos</TableHead>
                       <TableHead>Conector</TableHead>
-                      <TableHead>Iluminado</TableHead>
                       <TableHead>OEM</TableHead>
                       <TableHead>Confiança</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {interruptores.map((i, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="font-medium">{i.tipo}</TableCell>
-                        <TableCell>{i.pinos}</TableCell>
-                        <TableCell>{i.conector}</TableCell>
-                        <TableCell>{i.iluminado ? "Sim" : "Não"}</TableCell>
-                        <TableCell className="font-mono text-xs">{i.oem}</TableCell>
+                    {interruptores.map((i) => (
+                      <TableRow key={i.posicao}>
+                        <TableCell className="font-medium">{i.posicao}</TableCell>
+                        <TableCell>{i.tipo ?? "A confirmar"}</TableCell>
+                        <TableCell>{i.pinos ?? "A confirmar"}</TableCell>
+                        <TableCell>{i.conector ?? "A confirmar"}</TableCell>
+                        <TableCell className="font-mono text-xs">{i.oem ?? "A confirmar"}</TableCell>
                         <TableCell><BadgeConfianca nivel={i.confianca} /></TableCell>
                       </TableRow>
                     ))}
@@ -388,7 +466,7 @@ export default async function PaginaFichaVeiculo({
               ) : (
                 <SemDadosExplicativo
                   titulo="Interruptores ainda não mapeados"
-                  descricao="OEM, pinagem e conectores serão cadastrados pela Iteração 4."
+                  descricao="OEM, pinagem e conector ficam como pendência até serem confirmados em fonte oficial."
                 />
               )}
             </CardContent>
@@ -409,18 +487,16 @@ export default async function PaginaFichaVeiculo({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Código</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Categoria</TableHead>
+                      <TableHead>Aplicação</TableHead>
                       <TableHead>Confiança</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {oems.map((o) => (
-                      <TableRow key={o.codigo}>
+                      <TableRow key={`${o.codigo}-${o.descricao}`}>
                         <TableCell className="font-mono text-xs">{o.codigo}</TableCell>
                         <TableCell>{o.descricao}</TableCell>
-                        <TableCell><Badge variant="secondary">{o.categoria}</Badge></TableCell>
-                        <TableCell><BadgeConfianca nivel={o.confianca} /></TableCell>
+                        <TableCell><BadgeConfianca nivel={o.dado.confianca} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -428,7 +504,7 @@ export default async function PaginaFichaVeiculo({
               ) : (
                 <SemDadosExplicativo
                   titulo="Nenhum OEM associado ainda"
-                  descricao="Códigos OEM e aplicações cruzadas serão cadastrados pela Iteração 4 e cruzados na Iteração 5."
+                  descricao="Códigos OEM só entram com fonte oficial (catálogo de peças ou manual da montadora). Pendência registrada."
                 />
               )}
             </CardContent>
@@ -457,11 +533,21 @@ export default async function PaginaFichaVeiculo({
             <CardHeader>
               <CardTitle>Fontes consultadas</CardTitle>
               <CardDescription>
-                Cada dado técnico desta ficha terá URL, data de consulta e trecho de evidência quando a coleta real estiver ativa.
+                Todas as páginas oficiais usadas nesta ficha, com data de consulta.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <AlertaDemo mensagem="Rastreabilidade de fontes será preenchida a partir da Iteração 6." />
+              <ul className="space-y-2 text-sm">
+                {fonteOficialBr(veiculo) ? (
+                  <ItemFonte url={fonteOficialBr(veiculo)!} rotulo="Comercialização no Brasil" data={veiculo.verificadoBrEm} />
+                ) : null}
+                {veiculo.fotoPrincipalFonteUrl ? (
+                  <ItemFonte url={veiculo.fotoPrincipalFonteUrl} rotulo={`Foto: ${veiculo.fotoPrincipalCredito ?? "crédito na imagem"}`} data={null} />
+                ) : null}
+                {fontes.map(([url, data]) => (
+                  <ItemFonte key={url} url={url} rotulo="Dados técnicos" data={data} />
+                ))}
+              </ul>
             </CardContent>
           </Card>
         </TabsContent>
@@ -484,7 +570,7 @@ function ItemConectividade({
   estado,
 }: {
   titulo: string;
-  estado: EstadoRecurso;
+  estado: EstadoConectividade;
 }) {
   return (
     <div className="flex items-center justify-between rounded-md border bg-card p-3 text-sm">
@@ -506,5 +592,23 @@ function SemDadosExplicativo({
       <p className="font-medium">{titulo}</p>
       <p className="max-w-md text-xs text-muted-foreground">{descricao}</p>
     </div>
+  );
+}
+
+function ItemFonte({ url, rotulo, data }: { url: string; rotulo: string; data: string | null }) {
+  return (
+    <li className="flex flex-col gap-0.5 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between">
+      <span className="text-muted-foreground">{rotulo}</span>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 break-all font-medium text-primary hover:underline"
+      >
+        {url.replace(/^https?:\/\/(www\.)?/, "").slice(0, 70)}
+        <ExternalLink className="h-3 w-3 shrink-0" />
+        {data ? <span className="ml-1 font-normal text-muted-foreground">· {formatarData(data)}</span> : null}
+      </a>
+    </li>
   );
 }

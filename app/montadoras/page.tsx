@@ -26,7 +26,7 @@ export default async function PaginaMontadoras() {
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Montadoras e marcas"
-        descricao={`${montadoras.length} marcas com veículos vendidos no Brasil. Logotipos atuais de cada marca (Wikimedia Commons ou sala de imprensa oficial), com crédito abaixo.`}
+        descricao={`${montadoras.length} marcas com veículos vendidos no Brasil. Logotipos atuais de cada marca (Wikimedia Commons ou sala de imprensa oficial), com crédito abaixo. A contagem considera só os modelos já publicados com o pacote mínimo de dados.`}
       />
 
       {montadoras.length === 0 ? (
@@ -62,11 +62,18 @@ export default async function PaginaMontadoras() {
                       ) : null}
                     </div>
                   </div>
-                  <Badge variant="outline" className="shrink-0">
-                    {(m.qtdModelos ?? 0) === 0
-                      ? "modelos em verificação"
-                      : `${m.qtdModelos} ${m.qtdModelos === 1 ? "modelo" : "modelos"}`}
-                  </Badge>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge variant="outline">
+                      {(m.qtdModelos ?? 0) === 0
+                        ? "modelos em verificação"
+                        : `${m.qtdModelos} ${m.qtdModelos === 1 ? "modelo" : "modelos"}`}
+                    </Badge>
+                    {(m.qtdModelos ?? 0) > 0 && (m.qtdEmVerificacao ?? 0) > 0 ? (
+                      <span className="text-[10px] text-muted-foreground">
+                        +{m.qtdEmVerificacao} em verificação
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="flex-1 space-y-3 text-sm">
