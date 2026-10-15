@@ -32,12 +32,14 @@ export function LogoMontadora({
   nome,
   slug,
   logotipoUrl,
+  logotipoCredito,
   tamanho = "md",
   className,
 }: {
   nome: string;
   slug: string;
   logotipoUrl?: string | null;
+  logotipoCredito?: string | null;
   tamanho?: TamanhoLogo;
   className?: string;
 }) {
@@ -50,6 +52,9 @@ export function LogoMontadora({
   const temUrl = Boolean(logotipoUrl) && !erroImg;
 
   if (temUrl) {
+    const titulo = logotipoCredito
+      ? `${nome} — ${logotipoCredito}`
+      : `Logotipo ${nome}`;
     return (
       <div
         className={cn(
@@ -58,6 +63,7 @@ export function LogoMontadora({
           className,
         )}
         aria-label={`Logotipo ${nome}`}
+        title={titulo}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

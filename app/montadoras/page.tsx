@@ -26,7 +26,7 @@ export default async function PaginaMontadoras() {
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Montadoras e marcas"
-        descricao={`${montadoras.length} marcas monitoradas pela plataforma. Logotipos oficiais via Simple Icons (CDN público). Marcas sem logotipo exibem iniciais estilizadas na cor da marca.`}
+        descricao={`${montadoras.length} marcas monitoradas pela plataforma. Logotipos oficiais via Wikimedia Commons (crédito e licença CC exibidos abaixo). Marcas sem logotipo público conhecido exibem iniciais estilizadas na cor da marca.`}
       />
 
       {montadoras.length === 0 ? (
@@ -48,6 +48,7 @@ export default async function PaginaMontadoras() {
                       nome={m.nome}
                       slug={m.slug}
                       logotipoUrl={m.logotipoUrl}
+                      logotipoCredito={m.logotipoCredito}
                       tamanho="lg"
                     />
                     <div className="min-w-0">
@@ -75,6 +76,11 @@ export default async function PaginaMontadoras() {
                   <p className="rounded-md border border-dashed bg-muted/40 p-2 text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">Destaque:</span>{" "}
                     {m.destaque}
+                  </p>
+                ) : null}
+                {m.logotipoCredito ? (
+                  <p className="text-[10px] text-muted-foreground/80">
+                    Logo: {m.logotipoCredito}
                   </p>
                 ) : null}
               </CardContent>

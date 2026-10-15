@@ -102,6 +102,16 @@ export async function salvarVeiculo(id: string | null, dados: FormData) {
     link_oficial_url: String(dados.get("link_oficial_url") ?? "").trim() || null,
     video_oficial_url: String(dados.get("video_oficial_url") ?? "").trim() || null,
   };
+
+  const galeriaBruta = String(dados.get("galeria_urls") ?? "").trim();
+  const galeria = galeriaBruta
+    ? galeriaBruta
+        .split(/\r?\n/)
+        .map((u) => u.trim())
+        .filter(Boolean)
+    : [];
+  payload.galeria_urls = galeria;
+
   const preco = String(dados.get("preco_referencia") ?? "").trim();
   if (preco) payload.preco_referencia = Number(preco);
 
