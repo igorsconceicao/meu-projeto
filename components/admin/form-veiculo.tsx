@@ -82,8 +82,9 @@ export function FormVeiculo({
     }
   }
 
-  const marcaDoVeiculo =
-    montadoras.find((m) => m.id === montadoraId)?.nome ?? "Marca";
+  const montadoraSelecionada = montadoras.find((m) => m.id === montadoraId);
+  const marcaDoVeiculo = montadoraSelecionada?.nome ?? "Marca";
+  const slugDoVeiculo = montadoraSelecionada?.slug ?? null;
 
   return (
     <form action={submeter} className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -276,6 +277,7 @@ export function FormVeiculo({
               categoria={categoria}
               propulsao={propulsao}
               fotoUrl={foto || null}
+              montadoraSlug={slugDoVeiculo}
               proporcao="16/9"
               mostrarAviso={!foto}
             />

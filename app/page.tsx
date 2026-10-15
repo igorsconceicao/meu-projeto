@@ -278,6 +278,7 @@ export default async function PaginaDashboard() {
                       categoria={v.categoria}
                       propulsao={v.propulsao}
                       fotoUrl={v.fotoPrincipalUrl}
+                      montadoraSlug={v.montadoraSlug}
                       proporcao="16/9"
                       className="rounded-none ring-0"
                       mostrarAviso={false}

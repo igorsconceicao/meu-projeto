@@ -26,7 +26,7 @@ export default async function PaginaMontadoras() {
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Montadoras e marcas"
-        descricao={`${montadoras.length} marcas monitoradas pela plataforma. Logotipos exibidos via Clearbit (fallback automático para iniciais quando a URL falha).`}
+        descricao={`${montadoras.length} marcas monitoradas pela plataforma. Logotipos oficiais via Simple Icons (CDN público). Marcas sem logotipo exibem iniciais estilizadas na cor da marca.`}
       />
 
       {montadoras.length === 0 ? (

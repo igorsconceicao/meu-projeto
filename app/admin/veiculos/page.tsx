@@ -92,6 +92,7 @@ export default async function PaginaAdminVeiculos() {
                         categoria={v.categoria}
                         propulsao={v.propulsao}
                         fotoUrl={v.fotoPrincipalUrl}
+                        montadoraSlug={v.montadoraSlug}
                         proporcao="16/9"
                         mostrarAviso={false}
                       />

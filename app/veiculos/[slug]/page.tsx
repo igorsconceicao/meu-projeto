@@ -209,6 +209,7 @@ export default async function PaginaFichaVeiculo({
                 propulsao={veiculo.propulsao}
                 galeria={veiculo.galeriaUrls}
                 fotoPrincipal={veiculo.fotoPrincipalUrl}
+                montadoraSlug={veiculo.montadoraSlug}
               />
             </CardContent>
           </Card>

@@ -1,3 +1,6 @@
+"use client";
+
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const PALETA_HUE = [12, 212, 142, 48, 330, 268, 190] as const;
@@ -42,8 +45,11 @@ export function LogoMontadora({
   const hue = hueFromSlug(slug);
   const bg = `hsl(${hue} 70% 92%)`;
   const fg = `hsl(${hue} 70% 25%)`;
+  const [erroImg, setErroImg] = React.useState(false);
 
-  if (logotipoUrl) {
+  const temUrl = Boolean(logotipoUrl) && !erroImg;
+
+  if (temUrl) {
     return (
       <div
         className={cn(
@@ -55,10 +61,11 @@ export function LogoMontadora({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={logotipoUrl}
+          src={logotipoUrl!}
           alt={`Logotipo ${nome}`}
           className={cn("object-contain", t.img)}
           loading="lazy"
+          onError={() => setErroImg(true)}
         />
       </div>
     );

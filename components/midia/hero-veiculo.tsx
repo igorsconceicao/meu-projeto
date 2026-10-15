@@ -27,6 +27,7 @@ export function HeroVeiculo({
             categoria={veiculo.categoria}
             propulsao={veiculo.propulsao}
             fotoUrl={veiculo.fotoPrincipalUrl ?? null}
+            montadoraSlug={veiculo.montadoraSlug}
             proporcao="16/9"
             className="rounded-none"
             mostrarAviso={false}

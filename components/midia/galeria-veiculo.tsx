@@ -8,6 +8,7 @@ export function GaleriaVeiculo({
   propulsao,
   galeria,
   fotoPrincipal,
+  montadoraSlug,
   className,
 }: {
   nome: string;
@@ -15,6 +16,7 @@ export function GaleriaVeiculo({
   propulsao: string;
   galeria?: string[];
   fotoPrincipal?: string | null;
+  montadoraSlug?: string | null;
   className?: string;
 }) {
   const urls = (galeria ?? []).filter(Boolean);
@@ -56,6 +58,7 @@ export function GaleriaVeiculo({
           categoria={categoria}
           propulsao={propulsao}
           fotoUrl={url}
+          montadoraSlug={montadoraSlug}
           proporcao="4/3"
           mostrarAviso={false}
         />
