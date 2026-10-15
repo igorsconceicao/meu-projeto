@@ -36,6 +36,7 @@ const DOMINIOS_PERMITIDOS = [
   "peugeot.com.br",
   "ram.com.br",
   "renault.com.br",
+  "stellantis.com",
   "toyota.com.br",
   "vw.com.br",
   "volvocars.com",
@@ -89,9 +90,9 @@ async function buscarPagina(p: { id: string; url: string; palavras?: string[] })
     };
 
     const links = new Set<string>();
-    for (const m of html.matchAll(/href=["']([^"'#]+)["']/gi)) {
+    for (const m of html.matchAll(/(?:href=["']([^"'#]+)["']|<loc>\s*([^<\s]+)\s*<\/loc>)/gi)) {
       try {
-        const abs = new URL(m[1], finalUrl).toString();
+        const abs = new URL(m[1] ?? m[2], finalUrl).toString();
         if (contem(abs)) links.add(abs);
       } catch { /* ignora */ }
       if (links.size >= 40) break;
