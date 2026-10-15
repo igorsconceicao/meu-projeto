@@ -50,7 +50,7 @@ const QID_POR_SLUG = {
   fiat: "Q27835",         // Fiat Automobiles
   ford: "Q44294",         // Ford Motor Company
   gwm: "Q739171",         // Great Wall Motors
-  honda: "Q210464",       // Honda (como marca)
+  honda: "Q9584",         // Honda (como marca)
   hyundai: "Q55931",      // Hyundai Motor Company
   jac: "Q866298",         // JAC Motors
   jeep: "Q214617",        // Jeep

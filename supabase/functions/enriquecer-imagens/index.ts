@@ -23,7 +23,7 @@ const QID_POR_SLUG: Record<string, string> = {
   fiat: "Q27835",
   ford: "Q44294",
   gwm: "Q739171",
-  honda: "Q210464",
+  honda: "Q9584",
   hyundai: "Q55931",
   jac: "Q866298",
   jeep: "Q214617",
