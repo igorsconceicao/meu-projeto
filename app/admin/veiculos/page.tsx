@@ -75,7 +75,7 @@ export default async function PaginaAdminVeiculos() {
                       <span className="truncate text-sm">{v.marca}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{v.anoModelo}</TableCell>
+                  <TableCell>{v.anoModelo ?? "—"}</TableCell>
                   <TableCell>
                     <Badge variant="secondary">{v.categoria}</Badge>
                   </TableCell>

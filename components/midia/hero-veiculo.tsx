@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import type { Veiculo } from "@/lib/dados-demo";
 import { FotoVeiculo } from "./foto-veiculo";
 import { LogoMontadora } from "./logo-montadora";
+import { SeloVerificadoBr } from "./selo-verificado-br";
 
 export function HeroVeiculo({
   veiculo,
@@ -42,9 +43,20 @@ export function HeroVeiculo({
             </Badge>
           ) : null}
           {veiculo.fotoPrincipalCredito ? (
-            <div className="pointer-events-none absolute bottom-2 right-2 max-w-[70%] truncate rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
-              Foto: {veiculo.fotoPrincipalCredito}
-            </div>
+            veiculo.fotoPrincipalFonteUrl ? (
+              <a
+                href={veiculo.fotoPrincipalFonteUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="absolute bottom-2 right-2 max-w-[70%] truncate rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm hover:bg-black/75"
+              >
+                Foto: {veiculo.fotoPrincipalCredito}
+              </a>
+            ) : (
+              <div className="pointer-events-none absolute bottom-2 right-2 max-w-[70%] truncate rounded-md bg-black/60 px-2 py-0.5 text-[10px] text-white/90 backdrop-blur-sm">
+                Foto: {veiculo.fotoPrincipalCredito}
+              </div>
+            )
           ) : null}
         </div>
         <div className="flex flex-col justify-between gap-4 p-5 md:p-6">
@@ -69,8 +81,10 @@ export function HeroVeiculo({
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline">{veiculo.categoria}</Badge>
               <Badge variant="outline">{veiculo.propulsao}</Badge>
-              <Badge variant="outline">Ano {veiculo.anoModelo}</Badge>
+              <Badge variant="outline">Ano {veiculo.anoModelo ?? "a confirmar"}</Badge>
             </div>
+
+            <SeloVerificadoBr url={veiculo.verificadoBrUrl} em={veiculo.verificadoBrEm} />
 
             <p className="text-sm text-muted-foreground line-clamp-3">
               {veiculo.resumo}

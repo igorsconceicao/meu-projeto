@@ -7,7 +7,7 @@ type VeiculoRow = {
   montadora_id: string;
   nome_comercial: string;
   geracao: string;
-  ano_modelo: number;
+  ano_modelo: number | null;
   data_lancamento_br: string | null;
   categoria: Veiculo["categoria"];
   propulsao: Veiculo["propulsao"];
@@ -17,6 +17,9 @@ type VeiculoRow = {
   resumo: string | null;
   foto_principal_url: string | null;
   foto_principal_credito: string | null;
+  foto_principal_fonte_url: string | null;
+  verificado_br_url: string | null;
+  verificado_br_em: string | null;
   galeria_urls: string[] | null;
   link_oficial_url: string | null;
   video_oficial_url: string | null;
@@ -57,6 +60,9 @@ function mapearVeiculo(row: VeiculoRow): Veiculo {
     resumo: row.resumo,
     fotoPrincipalUrl: row.foto_principal_url,
     fotoPrincipalCredito: row.foto_principal_credito,
+    fotoPrincipalFonteUrl: row.foto_principal_fonte_url,
+    verificadoBrUrl: row.verificado_br_url,
+    verificadoBrEm: row.verificado_br_em,
     galeriaUrls: row.galeria_urls ?? [],
     linkOficialUrl: row.link_oficial_url,
     videoOficialUrl: row.video_oficial_url,
@@ -77,7 +83,9 @@ export async function buscarVeiculos(): Promise<Veiculo[]> {
   const { data, error } = await supabase
     .from("veiculos")
     .select(SELECT_COM_MONTADORA)
-    .order("data_lancamento_br", { ascending: false, nullsFirst: false });
+    .order("ano_modelo", { ascending: false, nullsFirst: false })
+    .order("data_lancamento_br", { ascending: false, nullsFirst: false })
+    .order("nome_comercial");
   if (error) throw error;
   return ((data as unknown as VeiculoRow[]) ?? []).map(mapearVeiculo);
 }

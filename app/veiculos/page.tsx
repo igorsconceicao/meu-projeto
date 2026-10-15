@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
 import { FotoVeiculo } from "@/components/midia/foto-veiculo";
 import { LogoMontadora } from "@/components/midia/logo-montadora";
+import { SeloVerificadoBr } from "@/components/midia/selo-verificado-br";
 import { Badge } from "@/components/ui/badge";
 import { BadgeConfianca } from "@/components/ui/badge-confianca";
 import { Input } from "@/components/ui/input";
@@ -30,7 +31,7 @@ export default async function PaginaVeiculos() {
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Catálogo de veículos"
-        descricao="Fichas técnicas dos modelos lançados ou atualizados no mercado brasileiro. Multimídia, iluminação, palhetas, interruptores e códigos OEM são preenchidos nas próximas iterações."
+        descricao="Somente modelos vendidos (ou com venda anunciada oficialmente) no Brasil, conferidos no site oficial brasileiro ou na sala de imprensa da montadora. Fotos da versão brasileira, com crédito."
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -84,7 +85,7 @@ export default async function PaginaVeiculos() {
                         {v.nomeComercial}
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        {v.geracao} · ano {v.anoModelo}
+                        {v.geracao} · ano {v.anoModelo ?? "a confirmar"}
                       </CardDescription>
                     </div>
                   </div>
@@ -115,8 +116,11 @@ export default async function PaginaVeiculos() {
                   </div>
                 ) : null}
               </CardContent>
-              <CardFooter className="flex items-center justify-between gap-2 border-t pt-3">
-                <BadgeConfianca nivel={v.confianca} />
+              <CardFooter className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <SeloVerificadoBr url={v.verificadoBrUrl} em={v.verificadoBrEm} compacto />
+                  <BadgeConfianca nivel={v.confianca} />
+                </div>
                 <Link
                   href={`/veiculos/${v.slug}`}
                   className="inline-flex items-center gap-0.5 text-sm font-medium text-primary hover:underline"

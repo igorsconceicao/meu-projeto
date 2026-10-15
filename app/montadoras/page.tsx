@@ -26,7 +26,7 @@ export default async function PaginaMontadoras() {
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Montadoras e marcas"
-        descricao={`${montadoras.length} marcas monitoradas pela plataforma. Logotipos oficiais via Wikimedia Commons (crédito e licença CC exibidos abaixo). Marcas sem logotipo público conhecido exibem iniciais estilizadas na cor da marca.`}
+        descricao={`${montadoras.length} marcas com veículos vendidos no Brasil. Logotipos atuais de cada marca (Wikimedia Commons ou sala de imprensa oficial), com crédito abaixo.`}
       />
 
       {montadoras.length === 0 ? (
@@ -63,7 +63,9 @@ export default async function PaginaMontadoras() {
                     </div>
                   </div>
                   <Badge variant="outline" className="shrink-0">
-                    {m.qtdModelos ?? 0} {(m.qtdModelos ?? 0) === 1 ? "modelo" : "modelos"}
+                    {(m.qtdModelos ?? 0) === 0
+                      ? "modelos em verificação"
+                      : `${m.qtdModelos} ${m.qtdModelos === 1 ? "modelo" : "modelos"}`}
                   </Badge>
                 </div>
               </CardHeader>

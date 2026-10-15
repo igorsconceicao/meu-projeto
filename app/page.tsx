@@ -65,7 +65,7 @@ export default async function PaginaDashboard() {
     },
     {
       titulo: "Novidades (2025)",
-      valor: veiculos.filter((v) => v.anoModelo >= 2025).length,
+      valor: veiculos.filter((v) => (v.anoModelo ?? 0) >= 2025).length,
       icone: Sparkles,
       descricao: "Lançamentos recentes",
       destaque: true,

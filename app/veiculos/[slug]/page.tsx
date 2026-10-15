@@ -177,7 +177,7 @@ export default async function PaginaFichaVeiculo({
               <Linha rotulo="Marca" valor={veiculo.marca} />
               <Linha rotulo="Modelo" valor={veiculo.nomeComercial} />
               <Linha rotulo="Geração" valor={veiculo.geracao} />
-              <Linha rotulo="Ano-modelo" valor={String(veiculo.anoModelo)} />
+              <Linha rotulo="Ano-modelo" valor={veiculo.anoModelo ? String(veiculo.anoModelo) : "A confirmar"} />
               <Linha rotulo="Categoria" valor={veiculo.categoria} />
               <Linha rotulo="Propulsão" valor={veiculo.propulsao} />
               <Linha rotulo="Situação comercial" valor={veiculo.situacao} />

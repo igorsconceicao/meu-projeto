@@ -56,7 +56,7 @@ export type Veiculo = {
   /** Convenience: nome da marca (derivado do join) */
   marca: string;
   geracao: string;
-  anoModelo: number;
+  anoModelo: number | null;
   dataLancamentoBr: string | null;
   categoria: CategoriaVeiculo;
   propulsao: TipoPropulsao;
@@ -66,6 +66,10 @@ export type Veiculo = {
   resumo: string | null;
   fotoPrincipalUrl: string | null;
   fotoPrincipalCredito: string | null;
+  fotoPrincipalFonteUrl: string | null;
+  /** Página oficial brasileira onde a comercialização no Brasil foi confirmada */
+  verificadoBrUrl: string | null;
+  verificadoBrEm: string | null;
   galeriaUrls: string[];
   linkOficialUrl: string | null;
   videoOficialUrl: string | null;

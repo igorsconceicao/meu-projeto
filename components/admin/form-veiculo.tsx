@@ -139,14 +139,13 @@ export function FormVeiculo({
                 placeholder="Ex.: 3ª geração, Reestilização, etc."
               />
             </Campo>
-            <Campo label="Ano-modelo *">
+            <Campo label="Ano-modelo" ajuda="Deixe vazio se a fonte oficial não informar.">
               <Input
                 name="ano_modelo"
                 type="number"
-                required
                 min={2000}
                 max={2035}
-                defaultValue={veiculo?.anoModelo ?? new Date().getFullYear()}
+                defaultValue={veiculo?.anoModelo ?? ""}
               />
             </Campo>
             <Campo label="Categoria *">

@@ -90,7 +90,7 @@ export async function salvarVeiculo(id: string | null, dados: FormData) {
     montadora_id: marcaId,
     nome_comercial: nome,
     geracao: String(dados.get("geracao") ?? "").trim() || "A confirmar",
-    ano_modelo: anoModelo || new Date().getFullYear(),
+    ano_modelo: anoModelo || null,
     data_lancamento_br: String(dados.get("data_lancamento_br") ?? "").trim() || null,
     categoria: String(dados.get("categoria") ?? "SUV"),
     propulsao: String(dados.get("propulsao") ?? "Flex"),
