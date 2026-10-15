@@ -12,6 +12,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
+import { FotoVeiculo } from "@/components/midia/foto-veiculo";
+import { LogoMontadora } from "@/components/midia/logo-montadora";
 import { AlertaDemo } from "@/components/ui/alerta-demo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  MONTADORAS,
   OPORTUNIDADES,
   RESUMO_DASHBOARD,
   VEICULOS,
@@ -51,6 +54,7 @@ const indicadores = [
     valor: RESUMO_DASHBOARD.novidadesSemana,
     icone: Sparkles,
     descricao: "Lançamentos e atualizações",
+    destaque: true,
   },
   {
     titulo: "Oportunidades abertas",
@@ -67,6 +71,9 @@ const indicadores = [
 ];
 
 export default function PaginaDashboard() {
+  const logoDe = (slug: string) =>
+    MONTADORAS.find((m) => m.slug === slug)?.logotipoUrl ?? null;
+
   return (
     <div className="flex flex-col gap-8">
       <CabecalhoPagina
@@ -93,12 +100,25 @@ export default function PaginaDashboard() {
       <AlertaDemo />
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {indicadores.map(({ titulo, valor, icone: Icone, descricao }) => (
-          <Card key={titulo}>
+        {indicadores.map(({ titulo, valor, icone: Icone, descricao, destaque }) => (
+          <Card
+            key={titulo}
+            className={
+              destaque
+                ? "border-highlight/50 bg-gradient-to-br from-highlight/5 via-card to-card"
+                : undefined
+            }
+          >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardDescription>{titulo}</CardDescription>
-                <Icone className="h-4 w-4 text-muted-foreground" />
+                <Icone
+                  className={
+                    destaque
+                      ? "h-4 w-4 text-highlight"
+                      : "h-4 w-4 text-muted-foreground"
+                  }
+                />
               </div>
               <CardTitle className="text-3xl">
                 {formatarNumero(valor)}
@@ -211,14 +231,17 @@ export default function PaginaDashboard() {
         </Card>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section>
         <Card>
           <CardHeader className="flex-row items-start justify-between space-y-0">
-            <div>
-              <CardTitle>Novidades recentes</CardTitle>
-              <CardDescription>
-                Lançamentos, pré-vendas e atualizações rastreadas.
-              </CardDescription>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-highlight" />
+              <div>
+                <CardTitle>Novidades recentes</CardTitle>
+                <CardDescription>
+                  Lançamentos, pré-vendas e atualizações rastreadas.
+                </CardDescription>
+              </div>
             </div>
             <Button variant="ghost" size="sm" asChild>
               <Link href="/veiculos">
@@ -227,39 +250,54 @@ export default function PaginaDashboard() {
             </Button>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Veículo</TableHead>
-                  <TableHead>Situação</TableHead>
-                  <TableHead>Propulsão</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {VEICULOS.slice(0, 5).map((v) => (
-                  <TableRow key={v.slug}>
-                    <TableCell>
-                      <Link
-                        href={`/veiculos/${v.slug}`}
-                        className="font-medium hover:underline"
-                      >
-                        {v.marca} {v.nomeComercial}
-                      </Link>
-                      <p className="text-xs text-muted-foreground">
-                        Ano {v.anoModelo} · {v.categoria}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{v.situacao}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">{v.propulsao}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {VEICULOS.slice(0, 3).map((v) => (
+                <Link
+                  key={v.slug}
+                  href={`/veiculos/${v.slug}`}
+                  className="group block overflow-hidden rounded-lg border bg-card transition-colors hover:border-primary/40"
+                >
+                  <FotoVeiculo
+                    nome={`${v.marca} ${v.nomeComercial}`}
+                    categoria={v.categoria}
+                    propulsao={v.propulsao}
+                    fotoUrl={v.fotoPrincipalUrl ?? null}
+                    proporcao="16/9"
+                    className="rounded-none ring-0"
+                    mostrarAviso={false}
+                  />
+                  <div className="space-y-2 p-3">
+                    <div className="flex items-start gap-2">
+                      <LogoMontadora
+                        nome={v.marca}
+                        slug={v.montadoraSlug}
+                        logotipoUrl={logoDe(v.montadoraSlug)}
+                        tamanho="sm"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          {v.marca}
+                        </p>
+                        <p className="truncate text-sm font-semibold leading-tight group-hover:text-primary">
+                          {v.nomeComercial}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="shrink-0 text-[10px]">
+                        {v.situacao}
+                      </Badge>
+                    </div>
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
+                      {v.resumo}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </CardContent>
         </Card>
+      </section>
 
+      <section>
         <Card>
           <CardHeader className="flex-row items-start justify-between space-y-0">
             <div>

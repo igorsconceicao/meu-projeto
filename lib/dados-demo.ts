@@ -25,6 +25,9 @@ export type Montadora = {
   pais: string;
   qtdModelos: number;
   destaque?: string;
+  // Mídia e links oficiais — populados pelo pipeline a partir da Iteração 6
+  logotipoUrl?: string | null;
+  siteOficialUrl?: string | null;
 };
 
 export const MONTADORAS: Montadora[] = [
@@ -80,6 +83,11 @@ export type Veiculo = {
   situacao: "Lançado" | "Pré-venda" | "Atualizado" | "A confirmar";
   confianca: NivelConfianca;
   resumo: string;
+  // Mídia e links oficiais — populados pelo pipeline a partir da Iteração 6
+  fotoPrincipalUrl?: string | null;
+  galeriaUrls?: string[];
+  linkOficialUrl?: string | null;
+  videoOficialUrl?: string | null;
 };
 
 export const VEICULOS: Veiculo[] = [

@@ -1,11 +1,13 @@
-import { Building2 } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
+import { BotaoSiteOficial } from "@/components/midia/botao-site-oficial";
+import { LogoMontadora } from "@/components/midia/logo-montadora";
 import { AlertaDemo } from "@/components/ui/alerta-demo";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -20,22 +22,27 @@ export default function PaginaMontadoras() {
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Montadoras e marcas"
-        descricao="Marcas acompanhadas pela plataforma. Novas montadoras podem ser adicionadas automaticamente ou pelo painel administrativo."
+        descricao="Marcas acompanhadas pela plataforma. Logotipos oficiais e links para o site da montadora são buscados automaticamente a partir da Iteração 6."
       />
 
       <AlertaDemo mensagem="As montadoras exibidas são fictícias. A base real de marcas (Chevrolet, Volkswagen, BYD, GWM, Toyota, etc.) será cadastrada a partir da Iteração 2." />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {MONTADORAS.map((m) => (
-          <Card key={m.slug}>
+          <Card key={m.slug} className="flex flex-col">
             <CardHeader>
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Building2 className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">{m.nome}</CardTitle>
+                  <LogoMontadora
+                    nome={m.nome}
+                    slug={m.slug}
+                    logotipoUrl={m.logotipoUrl ?? null}
+                    tamanho="lg"
+                  />
+                  <div className="min-w-0">
+                    <CardTitle className="text-base leading-tight">
+                      {m.nome}
+                    </CardTitle>
                     {m.grupo ? (
                       <CardDescription className="text-xs">
                         {m.grupo}
@@ -46,7 +53,7 @@ export default function PaginaMontadoras() {
                 <Badge variant="demo">demo</Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm">
+            <CardContent className="flex-1 space-y-3 text-sm">
               <div className="flex items-center justify-between text-muted-foreground">
                 <span>Origem</span>
                 <span className="font-medium text-foreground">{m.pais}</span>
@@ -64,6 +71,16 @@ export default function PaginaMontadoras() {
                 </p>
               ) : null}
             </CardContent>
+            <CardFooter>
+              <BotaoSiteOficial
+                url={m.siteOficialUrl ?? null}
+                marca={m.nome}
+                texto="Site oficial"
+                variant="outline"
+                size="sm"
+                className="w-full"
+              />
+            </CardFooter>
           </Card>
         ))}
       </div>

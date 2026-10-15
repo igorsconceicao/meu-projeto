@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Calendar, Car, Zap } from "lucide-react";
-import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
+import { BotaoSiteOficial } from "@/components/midia/botao-site-oficial";
+import { GaleriaVeiculo } from "@/components/midia/galeria-veiculo";
+import { HeroVeiculo } from "@/components/midia/hero-veiculo";
+import { VideoOficialEmbed } from "@/components/midia/video-oficial-embed";
 import { AlertaDemo } from "@/components/ui/alerta-demo";
 import { Badge } from "@/components/ui/badge";
 import { BadgeConfianca } from "@/components/ui/badge-confianca";
@@ -32,6 +35,7 @@ import {
   CODIGOS_OEM,
   INTERRUPTORES,
   LAMPADAS,
+  MONTADORAS,
   MULTIMIDIAS,
   PALHETAS,
   VEICULOS,
@@ -76,6 +80,7 @@ export default async function PaginaFichaVeiculo({
     notFound();
   }
 
+  const montadora = MONTADORAS.find((m) => m.slug === veiculo.montadoraSlug);
   const multimidia = MULTIMIDIAS.find((m) => m.veiculoSlug === slug);
   const lampadas = LAMPADAS.filter((l) => l.veiculoSlug === slug);
   const palhetas = PALHETAS.filter((p) => p.veiculoSlug === slug);
@@ -84,23 +89,37 @@ export default async function PaginaFichaVeiculo({
 
   return (
     <div className="flex flex-col gap-6">
-      <Button variant="ghost" size="sm" asChild className="self-start">
-        <Link href="/veiculos">
-          <ArrowLeft className="h-4 w-4" />
-          Voltar para o catálogo
-        </Link>
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button variant="ghost" size="sm" asChild>
+          <Link href="/veiculos">
+            <ArrowLeft className="h-4 w-4" />
+            Voltar para o catálogo
+          </Link>
+        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="demo">dados de demonstração</Badge>
+          <BadgeConfianca nivel={veiculo.confianca} />
+        </div>
+      </div>
 
-      <CabecalhoPagina
-        titulo={`${veiculo.marca} ${veiculo.nomeComercial}`}
-        descricao={veiculo.resumo}
-        acoes={
-          <>
-            <Badge variant="demo">dados de demonstração</Badge>
-            <BadgeConfianca nivel={veiculo.confianca} />
-          </>
-        }
+      <HeroVeiculo
+        veiculo={veiculo}
+        logotipoMontadoraUrl={montadora?.logotipoUrl ?? null}
       />
+
+      <div className="flex flex-wrap gap-2">
+        <BotaoSiteOficial
+          url={veiculo.linkOficialUrl ?? null}
+          marca={`${veiculo.marca} ${veiculo.nomeComercial}`}
+          texto="Conheça no site oficial"
+        />
+        <BotaoSiteOficial
+          url={montadora?.siteOficialUrl ?? null}
+          marca={veiculo.marca}
+          texto={`Página inicial · ${veiculo.marca}`}
+          variant="outline"
+        />
+      </div>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Card>
@@ -140,14 +159,18 @@ export default async function PaginaFichaVeiculo({
         </Card>
       </section>
 
+      <AlertaDemo />
+
       <Tabs defaultValue="geral" className="w-full">
         <TabsList className="w-full flex-wrap h-auto">
           <TabsTrigger value="geral">Geral</TabsTrigger>
+          <TabsTrigger value="galeria">Galeria</TabsTrigger>
           <TabsTrigger value="multimidia">Multimídia</TabsTrigger>
           <TabsTrigger value="lampadas">Lâmpadas</TabsTrigger>
           <TabsTrigger value="palhetas">Palhetas</TabsTrigger>
           <TabsTrigger value="interruptores">Interruptores</TabsTrigger>
           <TabsTrigger value="oem">Códigos OEM</TabsTrigger>
+          <TabsTrigger value="video">Vídeo oficial</TabsTrigger>
           <TabsTrigger value="fontes">Fontes</TabsTrigger>
         </TabsList>
 
@@ -170,6 +193,26 @@ export default async function PaginaFichaVeiculo({
               <Linha
                 rotulo="Lançamento BR"
                 valor={formatarData(veiculo.dataLancamentoBr)}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="galeria">
+          <Card>
+            <CardHeader>
+              <CardTitle>Galeria de fotos</CardTitle>
+              <CardDescription>
+                Fotos oficiais da montadora (sala de imprensa / kits de mídia) terão prioridade. Fontes complementares são identificadas separadamente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <GaleriaVeiculo
+                nome={`${veiculo.marca} ${veiculo.nomeComercial}`}
+                categoria={veiculo.categoria}
+                propulsao={veiculo.propulsao}
+                galeria={veiculo.galeriaUrls}
+                fotoPrincipal={veiculo.fotoPrincipalUrl}
               />
             </CardContent>
           </Card>
@@ -428,6 +471,23 @@ export default async function PaginaFichaVeiculo({
               ) : (
                 <SemDados titulo="Nenhum OEM associado ainda" />
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="video">
+          <Card>
+            <CardHeader>
+              <CardTitle>Vídeo oficial de apresentação</CardTitle>
+              <CardDescription>
+                Apenas vídeos do canal oficial da montadora. Vídeos de terceiros não entram aqui automaticamente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <VideoOficialEmbed
+                url={veiculo.videoOficialUrl ?? null}
+                nome={`${veiculo.marca} ${veiculo.nomeComercial}`}
+              />
             </CardContent>
           </Card>
         </TabsContent>
