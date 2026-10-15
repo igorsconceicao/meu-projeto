@@ -1,8 +1,10 @@
-// Pesquisa somente-leitura usada na curadoria de mídia e na verificação de
-// comercialização no Brasil. Não grava nada no banco.
+// Pesquisa somente-leitura usada na curadoria de mídia, na verificação de
+// comercialização no Brasil e na coleta de dados técnicos. Não grava nada.
 //
 // POST { acao: "pagina", paginas: [{ id, url, palavras?: string[] }] }
 //   → título, og:image, canonical, links e imagens que contêm as palavras.
+// POST { acao: "trechos", paginas: [{ id, url, palavras: string[], raio?, max? }] }
+//   → trechos de texto ao redor de cada palavra (ficha técnica, multimídia...).
 // POST { acao: "commons", consultas: [{ id, termo, limite? }] }
 // POST { acao: "commons-categoria", categorias: [{ id, categoria, limite? }] }
 //   → arquivos do Wikimedia Commons com autor, licença, descrição e categorias.
@@ -15,44 +17,51 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const UA =
   "InteligenciaAutomotivaBR/1.0 (+https://github.com/igorsconceicao/meu-projeto)";
 
-const DOMINIOS_PERMITIDOS = [
+// Domínios globais de montadoras com páginas brasileiras fora de .com.br.
+const DOMINIOS_GLOBAIS = [
   "wikimedia.org",
   "wikipedia.org",
   "wikidata.org",
   "byd.com",
-  "caoachery.com.br",
-  "chevrolet.com.br",
-  "citroen.com.br",
-  "fiat.com.br",
-  "ford.com.br",
-  "gwmmotors.com.br",
-  "gwm.com.br",
-  "honda.com.br",
-  "hyundai.com.br",
-  "jacmotors.com.br",
-  "jeep.com.br",
-  "mitsubishimotors.com.br",
-  "nissan.com.br",
-  "peugeot.com.br",
-  "ram.com.br",
-  "renault.com.br",
+  "denza.com",
   "stellantis.com",
-  "toyota.com.br",
-  "vw.com.br",
   "volvocars.com",
+  "nissan-cdn.net",
+  "gacmotor.com",
+  "gac-motor.com",
+  "gacinternational.com",
+  "omodajaecoo.com",
+  "omodaauto.com",
+  "jaecoo.com",
+  "leapmotor.com",
+  "leapmotor-international.com",
+  "geely.com",
+  "geelyauto.com",
+  "zeekr.com",
+  "zeekrlife.com",
+  "xpeng.com",
+  "heyxpeng.com",
+  "changan.com",
+  "changanauto.com",
+  "mgmotor.com",
+  "kia.com",
 ];
 
 function hostPermitido(url: string): boolean {
   try {
-    const h = new URL(url).hostname.toLowerCase();
-    return DOMINIOS_PERMITIDOS.some((d) => h === d || h.endsWith("." + d));
+    const u = new URL(url);
+    if (u.protocol !== "https:") return false;
+    const h = u.hostname.toLowerCase();
+    if (/^[\d.]+$/.test(h) || h.includes(":") || h === "localhost") return false;
+    if (h.endsWith(".com.br") || h.endsWith(".br")) return true;
+    return DOMINIOS_GLOBAIS.some((d) => h === d || h.endsWith("." + d));
   } catch {
     return false;
   }
 }
 
 function semAcento(s: string): string {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 function meta(html: string, prop: string): string | null {
@@ -64,71 +73,142 @@ function meta(html: string, prop: string): string | null {
   return m ? (m[1] ?? m[2] ?? null) : null;
 }
 
-async function buscarPagina(p: { id: string; url: string; palavras?: string[] }) {
-  if (!hostPermitido(p.url)) return { id: p.id, erro: "dominio-nao-permitido" };
+async function baixar(url: string): Promise<{ status: number; finalUrl: string; html: string } | { erro: string; status?: number; finalUrl?: string }> {
+  if (!hostPermitido(url)) return { erro: "dominio-nao-permitido" };
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 20000);
   try {
-    const res = await fetch(p.url, {
-      headers: { "User-Agent": UA, "Accept": "text/html,*/*" },
+    const res = await fetch(url, {
+      headers: { "User-Agent": UA, "Accept": "text/html,application/xhtml+xml,*/*" },
       redirect: "follow",
       signal: ctrl.signal,
     });
-    const finalUrl = res.url;
-    if (!hostPermitido(finalUrl)) {
-      return { id: p.id, status: res.status, finalUrl, erro: "redirecionou-para-fora" };
+    if (!hostPermitido(res.url)) {
+      return { erro: "redirecionou-para-fora", status: res.status, finalUrl: res.url };
     }
-    const html = (await res.text()).slice(0, 4_000_000);
-    const titulo = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim() ?? null;
-    const canonical =
-      html.match(/<link[^>]+rel=["']canonical["'][^>]*href=["']([^"']+)["']/i)?.[1] ?? null;
-
-    const palavras = (p.palavras ?? []).map(semAcento).filter(Boolean);
-    const contem = (s: string) => {
-      const n = semAcento(s);
-      return palavras.length === 0 || palavras.some((w) => n.includes(w));
-    };
-
-    const links = new Set<string>();
-    for (const m of html.matchAll(/(?:href=["']([^"'#]+)["']|<loc>\s*([^<\s]+)\s*<\/loc>)/gi)) {
-      try {
-        const abs = new URL(m[1] ?? m[2], finalUrl).toString();
-        if (contem(abs)) links.add(abs);
-      } catch { /* ignora */ }
-      if (links.size >= 40) break;
-    }
-
-    const imagens = new Set<string>();
-    for (const m of html.matchAll(/(?:src|data-src|srcset|content)=["']([^"']+\.(?:jpe?g|png|webp|avif)[^"'\s]*)/gi)) {
-      try {
-        const abs = new URL(m[1].split(/\s+/)[0], finalUrl).toString();
-        if (contem(abs)) imagens.add(abs);
-      } catch { /* ignora */ }
-      if (imagens.size >= 25) break;
-    }
-
-    const texto = semAcento(html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<[^>]+>/g, " "));
-    const ocorrencias: Record<string, number> = {};
-    for (const w of palavras) ocorrencias[w] = texto.split(w).length - 1;
-
-    return {
-      id: p.id,
-      status: res.status,
-      finalUrl,
-      titulo,
-      canonical,
-      ogTitle: meta(html, "og:title"),
-      ogImage: meta(html, "og:image"),
-      descricao: meta(html, "description")?.slice(0, 300) ?? null,
-      ocorrencias,
-      links: [...links],
-      imagens: [...imagens],
-    };
+    return { status: res.status, finalUrl: res.url, html: (await res.text()).slice(0, 4_000_000) };
   } catch (e: any) {
-    return { id: p.id, erro: String(e?.message ?? e) };
+    return { erro: String(e?.message ?? e) };
   } finally {
     clearTimeout(t);
   }
+}
+
+function decodificar(s: string): string {
+  return s
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, (_m, n) => String.fromCharCode(Number(n)))
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_m, h) => String.fromCharCode(parseInt(h, 16)));
+}
+
+/** Texto visível + conteúdo de scripts de dados (JSON/__NEXT_DATA__/ld+json). */
+function textos(html: string): { visivel: string; dados: string } {
+  const dados: string[] = [];
+  for (const m of html.matchAll(/<script[^>]*(?:type=["']application\/(?:ld\+)?json["']|id=["']__NEXT_DATA__["'])[^>]*>([\s\S]*?)<\/script>/gi)) {
+    dados.push(m[1]);
+  }
+  for (const m of html.matchAll(/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)/g)) {
+    dados.push(m[1]);
+  }
+  const visivel = html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<(br|\/p|\/li|\/td|\/th|\/tr|\/h\d|\/div)[^>]*>/gi, " | ")
+    .replace(/<[^>]+>/g, " ");
+  const limpa = (s: string) => decodificar(s).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  return { visivel: limpa(visivel), dados: limpa(dados.join(" | ")) };
+}
+
+async function buscarPagina(p: { id: string; url: string; palavras?: string[] }) {
+  const r = await baixar(p.url);
+  if ("erro" in r) return { id: p.id, ...r };
+  const { html, finalUrl, status } = r;
+  const titulo = html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim() ?? null;
+  const canonical =
+    html.match(/<link[^>]+rel=["']canonical["'][^>]*href=["']([^"']+)["']/i)?.[1] ?? null;
+
+  const palavras = (p.palavras ?? []).map(semAcento).filter(Boolean);
+  const contem = (s: string) => {
+    const n = semAcento(s);
+    return palavras.length === 0 || palavras.some((w) => n.includes(w));
+  };
+
+  const links = new Set<string>();
+  for (const m of html.matchAll(/(?:href=["']([^"'#]+)["']|<loc>\s*([^<\s]+)\s*<\/loc>)/gi)) {
+    try {
+      const abs = new URL(m[1] ?? m[2], finalUrl).toString();
+      if (contem(abs)) links.add(abs);
+    } catch { /* ignora */ }
+    if (links.size >= 40) break;
+  }
+
+  const imagens = new Set<string>();
+  for (const m of html.matchAll(/(?:src|data-src|srcset|content)=["']([^"']+\.(?:jpe?g|png|webp|avif)[^"'\s]*)/gi)) {
+    try {
+      const abs = new URL(m[1].split(/\s+/)[0], finalUrl).toString();
+      if (contem(abs)) imagens.add(abs);
+    } catch { /* ignora */ }
+    if (imagens.size >= 25) break;
+  }
+
+  const { visivel } = textos(html);
+  const texto = semAcento(visivel);
+  const ocorrencias: Record<string, number> = {};
+  for (const w of palavras) ocorrencias[w] = texto.split(w).length - 1;
+
+  return {
+    id: p.id,
+    status,
+    finalUrl,
+    titulo,
+    canonical,
+    ogTitle: meta(html, "og:title"),
+    ogImage: meta(html, "og:image"),
+    descricao: meta(html, "description")?.slice(0, 300) ?? null,
+    ocorrencias,
+    links: [...links],
+    imagens: [...imagens],
+  };
+}
+
+async function buscarTrechos(p: { id: string; url: string; palavras: string[]; raio?: number; max?: number }) {
+  const r = await baixar(p.url);
+  if ("erro" in r) return { id: p.id, ...r };
+  const raio = Math.min(p.raio ?? 140, 400);
+  const max = Math.min(p.max ?? 4, 12);
+  const { visivel, dados } = textos(r.html);
+  const resultado: Record<string, string[]> = {};
+  for (const [origem, texto] of [["v", visivel], ["d", dados]] as const) {
+    const norm = semAcento(texto);
+    for (const palavra of p.palavras) {
+      const w = semAcento(palavra);
+      if (!w) continue;
+      const lista = (resultado[palavra] ??= []);
+      let i = norm.indexOf(w);
+      while (i !== -1 && lista.length < max) {
+        const ini = Math.max(0, i - raio);
+        const trecho = texto.slice(ini, i + w.length + raio);
+        if (!lista.some((t) => t.includes(trecho.slice(raio - 10, raio + w.length + 10)))) {
+          lista.push(`[${origem}] ${trecho}`);
+        }
+        i = norm.indexOf(w, i + w.length + raio);
+      }
+    }
+  }
+  return {
+    id: p.id,
+    status: r.status,
+    finalUrl: r.finalUrl,
+    titulo: r.html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim() ?? null,
+    tamanhoTexto: visivel.length,
+    tamanhoDados: dados.length,
+    trechos: resultado,
+  };
 }
 
 function limpar(s: unknown, max: number): string | null {
@@ -216,6 +296,8 @@ Deno.serve(async (req) => {
   let resultado: unknown;
   if (body.acao === "pagina") {
     resultado = await emLotes(body.paginas ?? [], 6, buscarPagina);
+  } else if (body.acao === "trechos") {
+    resultado = await emLotes(body.paginas ?? [], 6, buscarTrechos);
   } else if (body.acao === "commons") {
     resultado = await emLotes(body.consultas ?? [], 4, commonsBusca);
   } else if (body.acao === "commons-categoria") {
