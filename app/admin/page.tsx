@@ -1,6 +1,13 @@
-import { AlertTriangle, Database, DollarSign, PlayCircle, RefreshCw, Shield, Users } from "lucide-react";
+import Link from "next/link";
+import {
+  Building2,
+  Car,
+  Database,
+  Image as ImageIcon,
+  PlusCircle,
+  ShieldCheck,
+} from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
-import { AlertaDemo } from "@/components/ui/alerta-demo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,75 +17,54 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { buscarMontadoras } from "@/lib/dados/montadoras";
+import { buscarVeiculos } from "@/lib/dados/veiculos";
 
 export const metadata = {
   title: "Administração",
 };
 
-const cartoes = [
-  {
-    titulo: "Fontes de dados",
-    descricao: "Cadastre, ative e desative fontes.",
-    rodape: "0 fontes cadastradas",
-    icone: Database,
-    disponivelNa: "Iteração 6",
-  },
-  {
-    titulo: "Rotina semanal",
-    descricao: "Última execução, erros, próxima rodada.",
-    rodape: "Aguardando primeira execução",
-    icone: RefreshCw,
-    disponivelNa: "Iteração 11",
-  },
-  {
-    titulo: "Painel de custos",
-    descricao: "Tokens, chamadas, custo por execução.",
-    rodape: "US$ 0,00 este mês (sem consumo)",
-    icone: DollarSign,
-    disponivelNa: "Iteração 9",
-  },
-  {
-    titulo: "Usuários e permissões",
-    descricao: "Controle de acesso ao painel.",
-    rodape: "Login será ativado na Iteração 3",
-    icone: Users,
-    disponivelNa: "Iteração 3",
-  },
-  {
-    titulo: "Erros de coleta",
-    descricao: "Falhas, timeouts e retentativas.",
-    rodape: "Nenhum erro registrado",
-    icone: AlertTriangle,
-    disponivelNa: "Iteração 6",
-  },
-  {
-    titulo: "Segurança",
-    descricao: "Chaves de API, variáveis de ambiente, backups.",
-    rodape: "Chaves apenas em .env.local / Vercel",
-    icone: Shield,
-    disponivelNa: "Iteração 2",
-  },
-];
+export const dynamic = "force-dynamic";
 
-export default function PaginaAdmin() {
+export default async function PaginaAdmin() {
+  const [montadoras, veiculos] = await Promise.all([
+    buscarMontadoras(),
+    buscarVeiculos(),
+  ]);
+
+  const veiculosComFoto = veiculos.filter((v) => v.fotoPrincipalUrl).length;
+  const veiculosComLink = veiculos.filter((v) => v.linkOficialUrl).length;
+  const montadorasComLogo = montadoras.filter((m) => m.logotipoUrl).length;
+
+  const cartoes = [
+    {
+      titulo: "Montadoras",
+      valor: montadoras.length,
+      descricao: `${montadorasComLogo} com logotipo definido`,
+      icone: Building2,
+      href: "/admin/montadoras",
+      acao: "Gerenciar",
+    },
+    {
+      titulo: "Veículos",
+      valor: veiculos.length,
+      descricao: `${veiculosComFoto} com foto · ${veiculosComLink} com link oficial`,
+      icone: Car,
+      href: "/admin/veiculos",
+      acao: "Gerenciar",
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
-        titulo="Administração"
-        descricao="Painel para gerenciar fontes, usuários, orçamento de IA, consumos e segurança."
-        acoes={
-          <Button disabled>
-            <PlayCircle className="h-4 w-4" />
-            Executar atualização manual
-          </Button>
-        }
+        titulo="Visão geral do admin"
+        descricao="Catálogo armazenado no Supabase. Qualquer alteração aqui aparece no site em segundos."
       />
 
-      <AlertaDemo mensagem="O painel administrativo ainda não está conectado. Cada seção abaixo será ativada na iteração indicada no cartão." />
-
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2">
         {cartoes.map((c) => (
-          <Card key={c.titulo}>
+          <Card key={c.titulo} className="flex flex-col">
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -92,14 +78,69 @@ export default function PaginaAdmin() {
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="demo">{c.disponivelNa}</Badge>
+                <Badge variant="outline" className="text-base font-semibold">
+                  {c.valor}
+                </Badge>
               </div>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">{c.rodape}</p>
+            <CardContent className="mt-auto flex gap-2">
+              <Button asChild className="flex-1">
+                <Link href={c.href}>{c.acao}</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href={`${c.href}/novo`}>
+                  <PlusCircle className="h-4 w-4" />
+                  Adicionar
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         ))}
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Database className="h-4 w-4" />
+              Banco de dados
+            </div>
+            <CardTitle className="text-base">Supabase (sa-east-1)</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Projeto <strong>inteligencia-automotiva</strong> hospedado em São
+            Paulo. Row Level Security ativo: leitura pública, alterações só
+            para usuários autenticados.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <ImageIcon className="h-4 w-4" />
+              Mídia
+            </div>
+            <CardTitle className="text-base">Imagens e links</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Logos via Clearbit Logo API com fallback automático. Fotos de
+            veículos e vídeos oficiais ficam vazios até você preencher aqui ou
+            até a coleta automática (Iteração 6).
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <ShieldCheck className="h-4 w-4" />
+              Segurança
+            </div>
+            <CardTitle className="text-base">Rastreabilidade</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Toda alteração aqui é gravada com usuário e timestamp. Nenhuma
+            chave é exposta no frontend — apenas a publishable key, protegida
+            por RLS.
+          </CardContent>
+        </Card>
       </section>
     </div>
   );

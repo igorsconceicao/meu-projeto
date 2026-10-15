@@ -1,7 +1,7 @@
+import Link from "next/link";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
 import { BotaoSiteOficial } from "@/components/midia/botao-site-oficial";
 import { LogoMontadora } from "@/components/midia/logo-montadora";
-import { AlertaDemo } from "@/components/ui/alerta-demo";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -11,79 +11,87 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { MONTADORAS } from "@/lib/dados-demo";
+import { buscarMontadoras } from "@/lib/dados/montadoras";
 
 export const metadata = {
   title: "Montadoras",
 };
 
-export default function PaginaMontadoras() {
+export const dynamic = "force-dynamic";
+
+export default async function PaginaMontadoras() {
+  const montadoras = await buscarMontadoras();
+
   return (
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Montadoras e marcas"
-        descricao="Marcas acompanhadas pela plataforma. Logotipos oficiais e links para o site da montadora são buscados automaticamente a partir da Iteração 6."
+        descricao={`${montadoras.length} marcas monitoradas pela plataforma. Logotipos exibidos via Clearbit (fallback automático para iniciais quando a URL falha).`}
       />
 
-      <AlertaDemo mensagem="As montadoras exibidas são fictícias. A base real de marcas (Chevrolet, Volkswagen, BYD, GWM, Toyota, etc.) será cadastrada a partir da Iteração 2." />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {MONTADORAS.map((m) => (
-          <Card key={m.slug} className="flex flex-col">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <LogoMontadora
-                    nome={m.nome}
-                    slug={m.slug}
-                    logotipoUrl={m.logotipoUrl ?? null}
-                    tamanho="lg"
-                  />
-                  <div className="min-w-0">
-                    <CardTitle className="text-base leading-tight">
-                      {m.nome}
-                    </CardTitle>
-                    {m.grupo ? (
-                      <CardDescription className="text-xs">
-                        {m.grupo}
-                      </CardDescription>
-                    ) : null}
+      {montadoras.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
+          Nenhuma montadora cadastrada ainda. Use o{" "}
+          <Link className="font-medium text-primary hover:underline" href="/admin/montadoras">
+            painel administrativo
+          </Link>{" "}
+          para adicionar.
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {montadoras.map((m) => (
+            <Card key={m.id} className="flex flex-col">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LogoMontadora
+                      nome={m.nome}
+                      slug={m.slug}
+                      logotipoUrl={m.logotipoUrl}
+                      tamanho="lg"
+                    />
+                    <div className="min-w-0">
+                      <CardTitle className="truncate text-base leading-tight">
+                        {m.nome}
+                      </CardTitle>
+                      {m.grupo ? (
+                        <CardDescription className="truncate text-xs">
+                          {m.grupo}
+                        </CardDescription>
+                      ) : null}
+                    </div>
                   </div>
+                  <Badge variant="outline" className="shrink-0">
+                    {m.qtdModelos ?? 0} {(m.qtdModelos ?? 0) === 1 ? "modelo" : "modelos"}
+                  </Badge>
                 </div>
-                <Badge variant="demo">demo</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="flex-1 space-y-3 text-sm">
-              <div className="flex items-center justify-between text-muted-foreground">
-                <span>Origem</span>
-                <span className="font-medium text-foreground">{m.pais}</span>
-              </div>
-              <div className="flex items-center justify-between text-muted-foreground">
-                <span>Modelos monitorados</span>
-                <span className="font-medium text-foreground">
-                  {m.qtdModelos}
-                </span>
-              </div>
-              {m.destaque ? (
-                <p className="rounded-md border border-dashed bg-muted/40 p-2 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">Destaque:</span>{" "}
-                  {m.destaque}
-                </p>
-              ) : null}
-            </CardContent>
-            <CardFooter>
-              <BotaoSiteOficial
-                url={m.siteOficialUrl ?? null}
-                marca={m.nome}
-                texto="Site oficial"
-                variant="outline"
-                size="sm"
-                className="w-full"
-              />
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+              </CardHeader>
+              <CardContent className="flex-1 space-y-3 text-sm">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Origem</span>
+                  <span className="font-medium text-foreground">{m.pais}</span>
+                </div>
+                {m.destaque ? (
+                  <p className="rounded-md border border-dashed bg-muted/40 p-2 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">Destaque:</span>{" "}
+                    {m.destaque}
+                  </p>
+                ) : null}
+              </CardContent>
+              <CardFooter>
+                <BotaoSiteOficial
+                  url={m.siteOficialUrl}
+                  marca={m.nome}
+                  texto="Site oficial"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                />
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

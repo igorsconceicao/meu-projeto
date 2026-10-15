@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
-  AlertTriangle,
   ArrowRight,
+  Building2,
   Car,
   CheckCircle2,
   Clock,
@@ -33,46 +33,52 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { buscarMontadoras } from "@/lib/dados/montadoras";
+import { buscarVeiculos } from "@/lib/dados/veiculos";
 import {
-  MONTADORAS,
   OPORTUNIDADES,
   RESUMO_DASHBOARD,
-  VEICULOS,
   VENDAS,
 } from "@/lib/dados-demo";
 import { formatarData, formatarNumero } from "@/lib/utils";
 
-const indicadores = [
-  {
-    titulo: "Veículos monitorados",
-    valor: RESUMO_DASHBOARD.veiculosMonitorados,
-    icone: Car,
-    descricao: "Catálogo técnico ativo",
-  },
-  {
-    titulo: "Novidades da semana",
-    valor: RESUMO_DASHBOARD.novidadesSemana,
-    icone: Sparkles,
-    descricao: "Lançamentos e atualizações",
-    destaque: true,
-  },
-  {
-    titulo: "Oportunidades abertas",
-    valor: RESUMO_DASHBOARD.oportunidadesAbertas,
-    icone: Lightbulb,
-    descricao: "Para o laboratório",
-  },
-  {
-    titulo: "OEMs a confirmar",
-    valor: RESUMO_DASHBOARD.oemPendentes,
-    icone: AlertTriangle,
-    descricao: "Pendências técnicas",
-  },
-];
+export const dynamic = "force-dynamic";
 
-export default function PaginaDashboard() {
-  const logoDe = (slug: string) =>
-    MONTADORAS.find((m) => m.slug === slug)?.logotipoUrl ?? null;
+export default async function PaginaDashboard() {
+  const [montadoras, veiculos] = await Promise.all([
+    buscarMontadoras(),
+    buscarVeiculos(),
+  ]);
+
+  const indicadores = [
+    {
+      titulo: "Veículos monitorados",
+      valor: veiculos.length,
+      icone: Car,
+      descricao: "Catálogo técnico ativo",
+    },
+    {
+      titulo: "Montadoras",
+      valor: montadoras.length,
+      icone: Building2,
+      descricao: "Marcas acompanhadas",
+    },
+    {
+      titulo: "Novidades (2025)",
+      valor: veiculos.filter((v) => v.anoModelo >= 2025).length,
+      icone: Sparkles,
+      descricao: "Lançamentos recentes",
+      destaque: true,
+    },
+    {
+      titulo: "Oportunidades abertas",
+      valor: OPORTUNIDADES.length,
+      icone: Lightbulb,
+      descricao: "Pendentes de Iteração 10",
+    },
+  ];
+
+  const novidades = veiculos.slice(0, 6);
 
   return (
     <div className="flex flex-col gap-8">
@@ -96,8 +102,6 @@ export default function PaginaDashboard() {
           </>
         }
       />
-
-      <AlertaDemo />
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {indicadores.map(({ titulo, valor, icone: Icone, descricao, destaque }) => (
@@ -142,7 +146,7 @@ export default function PaginaDashboard() {
             </div>
             <Badge variant="success" className="gap-1">
               <CheckCircle2 className="h-3 w-3" />
-              Sucesso
+              Pronto
             </Badge>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -156,19 +160,22 @@ export default function PaginaDashboard() {
                   {formatarData(RESUMO_DASHBOARD.ultimaExecucao)} · 09:12
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Fontes consultadas: 0 reais · {RESUMO_DASHBOARD.novidadesSemana} novidades (demo)
+                  Fontes consultadas: 0 reais · 0 novidades automatizadas
                 </p>
               </div>
               <div className="rounded-md border p-4">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Database className="h-3 w-3" />
-                  Próxima execução programada
+                  Catálogo no banco
                 </div>
                 <p className="mt-2 text-sm font-medium">
-                  Segunda-feira, 09:00 (BRT)
+                  {montadoras.length} montadoras · {veiculos.length} veículos
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Agendamento ativado a partir da Iteração 11
+                  Edite no{" "}
+                  <Link href="/admin/montadoras" className="text-primary hover:underline">
+                    painel administrativo
+                  </Link>
                 </p>
               </div>
             </div>
@@ -237,9 +244,9 @@ export default function PaginaDashboard() {
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-highlight" />
               <div>
-                <CardTitle>Novidades recentes</CardTitle>
+                <CardTitle>Catálogo recente</CardTitle>
                 <CardDescription>
-                  Lançamentos, pré-vendas e atualizações rastreadas.
+                  Modelos lançados ou atualizados no mercado brasileiro.
                 </CardDescription>
               </div>
             </div>
@@ -250,49 +257,61 @@ export default function PaginaDashboard() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {VEICULOS.slice(0, 3).map((v) => (
-                <Link
-                  key={v.slug}
-                  href={`/veiculos/${v.slug}`}
-                  className="group block overflow-hidden rounded-lg border bg-card transition-colors hover:border-primary/40"
-                >
-                  <FotoVeiculo
-                    nome={`${v.marca} ${v.nomeComercial}`}
-                    categoria={v.categoria}
-                    propulsao={v.propulsao}
-                    fotoUrl={v.fotoPrincipalUrl ?? null}
-                    proporcao="16/9"
-                    className="rounded-none ring-0"
-                    mostrarAviso={false}
-                  />
-                  <div className="space-y-2 p-3">
-                    <div className="flex items-start gap-2">
-                      <LogoMontadora
-                        nome={v.marca}
-                        slug={v.montadoraSlug}
-                        logotipoUrl={logoDe(v.montadoraSlug)}
-                        tamanho="sm"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                          {v.marca}
-                        </p>
-                        <p className="truncate text-sm font-semibold leading-tight group-hover:text-primary">
-                          {v.nomeComercial}
-                        </p>
+            {novidades.length === 0 ? (
+              <div className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
+                Nenhum veículo cadastrado. Vá em{" "}
+                <Link href="/admin/veiculos" className="font-medium text-primary hover:underline">
+                  Admin → Veículos
+                </Link>{" "}
+                para adicionar.
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {novidades.map((v) => (
+                  <Link
+                    key={v.id}
+                    href={`/veiculos/${v.slug}`}
+                    className="group block overflow-hidden rounded-lg border bg-card transition-colors hover:border-primary/40"
+                  >
+                    <FotoVeiculo
+                      nome={`${v.marca} ${v.nomeComercial}`}
+                      categoria={v.categoria}
+                      propulsao={v.propulsao}
+                      fotoUrl={v.fotoPrincipalUrl}
+                      proporcao="16/9"
+                      className="rounded-none ring-0"
+                      mostrarAviso={false}
+                    />
+                    <div className="space-y-2 p-3">
+                      <div className="flex items-start gap-2">
+                        <LogoMontadora
+                          nome={v.marca}
+                          slug={v.montadoraSlug}
+                          logotipoUrl={v.montadora?.logotipoUrl ?? null}
+                          tamanho="sm"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                            {v.marca}
+                          </p>
+                          <p className="truncate text-sm font-semibold leading-tight group-hover:text-primary">
+                            {v.nomeComercial}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="shrink-0 text-[10px]">
+                          {v.situacao}
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className="shrink-0 text-[10px]">
-                        {v.situacao}
-                      </Badge>
+                      {v.resumo ? (
+                        <p className="line-clamp-2 text-xs text-muted-foreground">
+                          {v.resumo}
+                        </p>
+                      ) : null}
                     </div>
-                    <p className="line-clamp-2 text-xs text-muted-foreground">
-                      {v.resumo}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </section>
@@ -303,13 +322,14 @@ export default function PaginaDashboard() {
             <div>
               <CardTitle>Movimento de mercado</CardTitle>
               <CardDescription>
-                Ranking fictício — Setembro / 2026 (demo).
+                Dados fictícios de exemplo — Fenabrave/Anfavea entram na Iteração 8.
               </CardDescription>
             </div>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <Table>
+            <AlertaDemo mensagem="Rankings de vendas reais serão importados da Fenabrave e Anfavea na Iteração 8." />
+            <Table className="mt-4">
               <TableHeader>
                 <TableRow>
                   <TableHead>Modelo</TableHead>
@@ -347,3 +367,4 @@ export default function PaginaDashboard() {
     </div>
   );
 }
+

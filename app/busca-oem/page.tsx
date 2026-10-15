@@ -1,8 +1,6 @@
 import { Search } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
 import { AlertaDemo } from "@/components/ui/alerta-demo";
-import { Badge } from "@/components/ui/badge";
-import { BadgeConfianca } from "@/components/ui/badge-confianca";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,24 +10,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { CODIGOS_OEM, VEICULOS } from "@/lib/dados-demo";
 
 export const metadata = {
   title: "Busca por OEM",
 };
-
-function nomeVeiculo(slug: string) {
-  const v = VEICULOS.find((x) => x.slug === slug);
-  return v ? `${v.marca} ${v.nomeComercial} ${v.anoModelo}` : slug;
-}
 
 export default function PaginaBuscaOem() {
   return (
@@ -39,7 +23,7 @@ export default function PaginaBuscaOem() {
         descricao="Pesquise um código OEM para encontrar veículos compatíveis, componentes substitutos e possíveis aplicações cruzadas."
       />
 
-      <AlertaDemo mensagem="A busca ainda não está conectada ao banco de dados. A pesquisa semântica por OEM entra na Iteração 5." />
+      <AlertaDemo mensagem="A base de códigos OEM entra na Iteração 4 (fichas técnicas) e a busca semântica cruzada entra na Iteração 5." />
 
       <Card>
         <CardHeader>
@@ -67,40 +51,18 @@ export default function PaginaBuscaOem() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Catálogo atual (demo)</CardTitle>
+          <CardTitle>Catálogo de OEMs</CardTitle>
           <CardDescription>
-            Códigos cadastrados até agora. Nenhum destes OEM é real — todos têm confiança &quot;a confirmar&quot;.
+            Códigos OEM e aplicações cruzadas serão cadastrados nas próximas iterações.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Código</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Aplicações</TableHead>
-                <TableHead>Confiança</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {CODIGOS_OEM.map((o) => (
-                <TableRow key={o.codigo}>
-                  <TableCell className="font-mono text-xs">{o.codigo}</TableCell>
-                  <TableCell>{o.descricao}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{o.categoria}</Badge>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {o.aplicacoes.map(nomeVeiculo).join(" · ")}
-                  </TableCell>
-                  <TableCell>
-                    <BadgeConfianca nivel={o.confianca} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent>
+          <div className="rounded-md border border-dashed p-10 text-center text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Nenhum código OEM no banco ainda</p>
+            <p className="mt-1 text-xs">
+              Priorizar fontes técnicas confiáveis: catálogos oficiais, fabricantes de iluminação (Osram, Philips), palhetas (Bosch, DPK) e componentes elétricos.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

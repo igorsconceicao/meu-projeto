@@ -31,17 +31,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { buscarVeiculoPorSlug } from "@/lib/dados/veiculos";
 import {
   CODIGOS_OEM,
   INTERRUPTORES,
   LAMPADAS,
-  MONTADORAS,
   MULTIMIDIAS,
   PALHETAS,
-  VEICULOS,
   type EstadoRecurso,
 } from "@/lib/dados-demo";
 import { formatarData, formatarPreco } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
 
 const ROTULOS_ESTADO: Record<EstadoRecurso, { label: string; variant: "success" | "secondary" | "warning" }> = {
   confirmado: { label: "Confirmado", variant: "success" },
@@ -55,17 +56,13 @@ function BadgeEstado({ estado }: { estado: EstadoRecurso }) {
   return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
 }
 
-export async function generateStaticParams() {
-  return VEICULOS.map((v) => ({ slug: v.slug }));
-}
-
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const veiculo = VEICULOS.find((v) => v.slug === slug);
+  const veiculo = await buscarVeiculoPorSlug(slug);
   return { title: veiculo ? `${veiculo.marca} ${veiculo.nomeComercial}` : "Veículo" };
 }
 
@@ -75,12 +72,11 @@ export default async function PaginaFichaVeiculo({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const veiculo = VEICULOS.find((v) => v.slug === slug);
+  const veiculo = await buscarVeiculoPorSlug(slug);
   if (!veiculo) {
     notFound();
   }
 
-  const montadora = MONTADORAS.find((m) => m.slug === veiculo.montadoraSlug);
   const multimidia = MULTIMIDIAS.find((m) => m.veiculoSlug === slug);
   const lampadas = LAMPADAS.filter((l) => l.veiculoSlug === slug);
   const palhetas = PALHETAS.filter((p) => p.veiculoSlug === slug);
@@ -96,25 +92,22 @@ export default async function PaginaFichaVeiculo({
             Voltar para o catálogo
           </Link>
         </Button>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="demo">dados de demonstração</Badge>
-          <BadgeConfianca nivel={veiculo.confianca} />
-        </div>
+        <BadgeConfianca nivel={veiculo.confianca} />
       </div>
 
       <HeroVeiculo
         veiculo={veiculo}
-        logotipoMontadoraUrl={montadora?.logotipoUrl ?? null}
+        logotipoMontadoraUrl={veiculo.montadora?.logotipoUrl ?? null}
       />
 
       <div className="flex flex-wrap gap-2">
         <BotaoSiteOficial
-          url={veiculo.linkOficialUrl ?? null}
+          url={veiculo.linkOficialUrl}
           marca={`${veiculo.marca} ${veiculo.nomeComercial}`}
           texto="Conheça no site oficial"
         />
         <BotaoSiteOficial
-          url={montadora?.siteOficialUrl ?? null}
+          url={veiculo.montadora?.siteOficialUrl ?? null}
           marca={veiculo.marca}
           texto={`Página inicial · ${veiculo.marca}`}
           variant="outline"
@@ -145,7 +138,7 @@ export default async function PaginaFichaVeiculo({
             <p className="text-xs text-muted-foreground">Lançamento no Brasil</p>
             <p className="mt-1 font-semibold flex items-center gap-1.5">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              {formatarData(veiculo.dataLancamentoBr)}
+              {veiculo.dataLancamentoBr ? formatarData(veiculo.dataLancamentoBr) : "A confirmar"}
             </p>
           </CardContent>
         </Card>
@@ -153,13 +146,11 @@ export default async function PaginaFichaVeiculo({
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Preço de referência</p>
             <p className="mt-1 font-semibold">
-              {formatarPreco(veiculo.precoReferencia)}
+              {veiculo.precoReferencia ? formatarPreco(veiculo.precoReferencia) : "A confirmar"}
             </p>
           </CardContent>
         </Card>
       </section>
-
-      <AlertaDemo />
 
       <Tabs defaultValue="geral" className="w-full">
         <TabsList className="w-full flex-wrap h-auto">
@@ -192,8 +183,13 @@ export default async function PaginaFichaVeiculo({
               <Linha rotulo="Situação comercial" valor={veiculo.situacao} />
               <Linha
                 rotulo="Lançamento BR"
-                valor={formatarData(veiculo.dataLancamentoBr)}
+                valor={veiculo.dataLancamentoBr ? formatarData(veiculo.dataLancamentoBr) : "A confirmar"}
               />
+              {veiculo.resumo ? (
+                <div className="sm:col-span-2 pt-2 text-sm text-muted-foreground">
+                  {veiculo.resumo}
+                </div>
+              ) : null}
             </CardContent>
           </Card>
         </TabsContent>
@@ -231,63 +227,34 @@ export default async function PaginaFichaVeiculo({
                 <div className="grid gap-6">
                   <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                     <Linha rotulo="Fabricante" valor={multimidia.fabricante} />
-                    <Linha
-                      rotulo="Modelo da unidade"
-                      valor={multimidia.modeloEquipamento}
-                    />
+                    <Linha rotulo="Modelo da unidade" valor={multimidia.modeloEquipamento} />
                     <Linha rotulo="Tela" valor={multimidia.tamanhoTela} />
                     <Linha rotulo="Resolução" valor={multimidia.resolucao} />
                     <Linha rotulo="Sistema operacional" valor={multimidia.so} />
                     <Linha rotulo="Portas USB" valor={multimidia.portasUsb} />
                     <Linha rotulo="Alto-falantes" valor={multimidia.altoFalantes} />
                   </div>
-
                   <Separator />
-
                   <div>
                     <p className="mb-3 text-sm font-semibold">
                       Apple CarPlay e Android Auto
                     </p>
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <ItemConectividade
-                        titulo="CarPlay via cabo"
-                        estado={multimidia.carplayCabo}
-                      />
-                      <ItemConectividade
-                        titulo="CarPlay sem fio"
-                        estado={multimidia.carplaySemFio}
-                      />
-                      <ItemConectividade
-                        titulo="Android Auto via cabo"
-                        estado={multimidia.androidAutoCabo}
-                      />
-                      <ItemConectividade
-                        titulo="Android Auto sem fio"
-                        estado={multimidia.androidAutoSemFio}
-                      />
-                      <ItemConectividade
-                        titulo="Bluetooth"
-                        estado={multimidia.bluetooth}
-                      />
+                      <ItemConectividade titulo="CarPlay via cabo" estado={multimidia.carplayCabo} />
+                      <ItemConectividade titulo="CarPlay sem fio" estado={multimidia.carplaySemFio} />
+                      <ItemConectividade titulo="Android Auto via cabo" estado={multimidia.androidAutoCabo} />
+                      <ItemConectividade titulo="Android Auto sem fio" estado={multimidia.androidAutoSemFio} />
+                      <ItemConectividade titulo="Bluetooth" estado={multimidia.bluetooth} />
                       <ItemConectividade titulo="Wi-Fi" estado={multimidia.wifi} />
-                      <ItemConectividade
-                        titulo="GPS nativo"
-                        estado={multimidia.gpsNativo}
-                      />
+                      <ItemConectividade titulo="GPS nativo" estado={multimidia.gpsNativo} />
                     </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-start justify-between gap-4">
-                    <p className="text-sm text-muted-foreground">
-                      {multimidia.observacoes}
-                    </p>
-                    <BadgeConfianca nivel={multimidia.confianca} />
                   </div>
                 </div>
               ) : (
-                <SemDados titulo="Multimídia a confirmar" />
+                <SemDadosExplicativo
+                  titulo="Dados de multimídia ainda não coletados"
+                  descricao="Serão preenchidos pela Iteração 4 (fichas técnicas detalhadas) ou pela Iteração 6 (coleta automática das salas de imprensa das montadoras)."
+                />
               )}
             </CardContent>
           </Card>
@@ -318,23 +285,20 @@ export default async function PaginaFichaVeiculo({
                     {lampadas.map((l, idx) => (
                       <TableRow key={`${l.posicao}-${idx}`}>
                         <TableCell className="font-medium">{l.posicao}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{l.codigo}</Badge>
-                        </TableCell>
+                        <TableCell><Badge variant="secondary">{l.codigo}</Badge></TableCell>
                         <TableCell>{l.tecnologia}</TableCell>
                         <TableCell>{l.potencia}</TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {l.oem}
-                        </TableCell>
-                        <TableCell>
-                          <BadgeConfianca nivel={l.confianca} />
-                        </TableCell>
+                        <TableCell className="font-mono text-xs">{l.oem}</TableCell>
+                        <TableCell><BadgeConfianca nivel={l.confianca} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               ) : (
-                <SemDados titulo="Nenhuma lâmpada mapeada para este veículo ainda" />
+                <SemDadosExplicativo
+                  titulo="Lâmpadas ainda não mapeadas"
+                  descricao="Códigos H7, H11, HB3 e OEM específicos serão cadastrados pela Iteração 4 ou coletados automaticamente de catálogos oficiais."
+                />
               )}
             </CardContent>
           </Card>
@@ -370,18 +334,17 @@ export default async function PaginaFichaVeiculo({
                         <TableCell>{p.medidaPol}</TableCell>
                         <TableCell>{p.encaixe}</TableCell>
                         <TableCell>{p.formato}</TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {p.oem}
-                        </TableCell>
-                        <TableCell>
-                          <BadgeConfianca nivel={p.confianca} />
-                        </TableCell>
+                        <TableCell className="font-mono text-xs">{p.oem}</TableCell>
+                        <TableCell><BadgeConfianca nivel={p.confianca} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               ) : (
-                <SemDados titulo="Palhetas ainda não mapeadas" />
+                <SemDadosExplicativo
+                  titulo="Palhetas ainda não mapeadas"
+                  descricao="Medidas específicas por versão e ano-modelo serão coletadas pela Iteração 4."
+                />
               )}
             </CardContent>
           </Card>
@@ -415,18 +378,17 @@ export default async function PaginaFichaVeiculo({
                         <TableCell>{i.pinos}</TableCell>
                         <TableCell>{i.conector}</TableCell>
                         <TableCell>{i.iluminado ? "Sim" : "Não"}</TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {i.oem}
-                        </TableCell>
-                        <TableCell>
-                          <BadgeConfianca nivel={i.confianca} />
-                        </TableCell>
+                        <TableCell className="font-mono text-xs">{i.oem}</TableCell>
+                        <TableCell><BadgeConfianca nivel={i.confianca} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               ) : (
-                <SemDados titulo="Interruptores ainda não mapeados" />
+                <SemDadosExplicativo
+                  titulo="Interruptores ainda não mapeados"
+                  descricao="OEM, pinagem e conectores serão cadastrados pela Iteração 4."
+                />
               )}
             </CardContent>
           </Card>
@@ -454,22 +416,19 @@ export default async function PaginaFichaVeiculo({
                   <TableBody>
                     {oems.map((o) => (
                       <TableRow key={o.codigo}>
-                        <TableCell className="font-mono text-xs">
-                          {o.codigo}
-                        </TableCell>
+                        <TableCell className="font-mono text-xs">{o.codigo}</TableCell>
                         <TableCell>{o.descricao}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{o.categoria}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <BadgeConfianca nivel={o.confianca} />
-                        </TableCell>
+                        <TableCell><Badge variant="secondary">{o.categoria}</Badge></TableCell>
+                        <TableCell><BadgeConfianca nivel={o.confianca} /></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               ) : (
-                <SemDados titulo="Nenhum OEM associado ainda" />
+                <SemDadosExplicativo
+                  titulo="Nenhum OEM associado ainda"
+                  descricao="Códigos OEM e aplicações cruzadas serão cadastrados pela Iteração 4 e cruzados na Iteração 5."
+                />
               )}
             </CardContent>
           </Card>
@@ -485,7 +444,7 @@ export default async function PaginaFichaVeiculo({
             </CardHeader>
             <CardContent>
               <VideoOficialEmbed
-                url={veiculo.videoOficialUrl ?? null}
+                url={veiculo.videoOficialUrl}
                 nome={`${veiculo.marca} ${veiculo.nomeComercial}`}
               />
             </CardContent>
@@ -501,7 +460,7 @@ export default async function PaginaFichaVeiculo({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <SemDados titulo="Rastreabilidade de fontes será preenchida a partir da Iteração 6" />
+              <AlertaDemo mensagem="Rastreabilidade de fontes será preenchida a partir da Iteração 6." />
             </CardContent>
           </Card>
         </TabsContent>
@@ -534,10 +493,17 @@ function ItemConectividade({
   );
 }
 
-function SemDados({ titulo }: { titulo: string }) {
+function SemDadosExplicativo({
+  titulo,
+  descricao,
+}: {
+  titulo: string;
+  descricao: string;
+}) {
   return (
-    <div className="flex items-center justify-center rounded-md border border-dashed p-10 text-sm text-muted-foreground">
-      {titulo}
+    <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed p-10 text-center text-sm">
+      <p className="font-medium">{titulo}</p>
+      <p className="max-w-md text-xs text-muted-foreground">{descricao}</p>
     </div>
   );
 }

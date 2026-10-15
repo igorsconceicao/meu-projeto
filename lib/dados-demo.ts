@@ -1,182 +1,25 @@
 /**
  * ============================================================================
- * DADOS DE DEMONSTRAÇÃO
+ * DADOS DE DEMONSTRAÇÃO (dados técnicos ainda não migrados para o banco)
  * ============================================================================
- * Todos os registros deste arquivo possuem `demo: true`.
- * NÃO representam informações reais do mercado automotivo brasileiro.
- * Serão substituídos pela coleta real a partir da Iteração 6.
+ * Após a Iteração 2, montadoras e veículos vêm do Supabase (ver `lib/dados/`).
+ * Este arquivo mantém apenas os dados técnicos e analíticos que ainda não
+ * foram modelados no banco — serão migrados nas próximas iterações:
+ *   - MULTIMIDIAS, LAMPADAS, PALHETAS, INTERRUPTORES, CODIGOS_OEM → Iteração 4
+ *   - VENDAS, OPINIOES, ACESSORIOS → Iterações 8-9
+ *   - OPORTUNIDADES → Iteração 10
+ *   - RELATORIOS → Iteração 12
  *
- * Nenhum código OEM, especificação, estatística ou aplicação exibida aqui
- * deve ser utilizado em decisões comerciais ou técnicas até ser confirmado
- * por fontes reais (regra 24.3 do briefing do projeto).
+ * Todos os registros aqui têm `demo: true`. Nenhum é apresentado como
+ * dado real do mercado automotivo até ter sido coletado de fonte oficial.
  * ============================================================================
  */
 
-import type { NivelConfianca } from "@/components/ui/badge-confianca";
+// Re-exporta os tipos canônicos para compatibilidade com código anterior
+export type { Montadora, Veiculo, NivelConfianca } from "./tipos";
 
 export const AVISO_DEMO =
   "Dados fictícios de demonstração — não representam o mercado real.";
-
-export type Montadora = {
-  demo: true;
-  slug: string;
-  nome: string;
-  grupo?: string;
-  pais: string;
-  qtdModelos: number;
-  destaque?: string;
-  // Mídia e links oficiais — populados pelo pipeline a partir da Iteração 6
-  logotipoUrl?: string | null;
-  siteOficialUrl?: string | null;
-};
-
-export const MONTADORAS: Montadora[] = [
-  {
-    demo: true,
-    slug: "exemplo-motors",
-    nome: "ExemploMotors",
-    grupo: "Grupo Demo",
-    pais: "Brasil",
-    qtdModelos: 7,
-    destaque: "Lançamento de SUV elétrico em pré-venda (fictício)",
-  },
-  {
-    demo: true,
-    slug: "demo-auto",
-    nome: "Demo Auto",
-    grupo: "Grupo Demo Internacional",
-    pais: "China",
-    qtdModelos: 4,
-    destaque: "Entrada no Brasil anunciada (fictício)",
-  },
-  {
-    demo: true,
-    slug: "placeholder-cars",
-    nome: "Placeholder Cars",
-    grupo: "Grupo Demo Europa",
-    pais: "Alemanha",
-    qtdModelos: 12,
-    destaque: "Nova geração do sedã médio (fictício)",
-  },
-  {
-    demo: true,
-    slug: "exemplo-ev",
-    nome: "ExemploEV",
-    pais: "Brasil",
-    qtdModelos: 3,
-    destaque: "Hatch elétrico de entrada (fictício)",
-  },
-];
-
-export type Veiculo = {
-  demo: true;
-  slug: string;
-  nomeComercial: string;
-  montadoraSlug: string;
-  marca: string;
-  geracao: string;
-  anoModelo: number;
-  dataLancamentoBr: string;
-  categoria: "Hatch" | "Sedã" | "SUV" | "Picape" | "Utilitário" | "Esportivo";
-  propulsao: "Combustão" | "Flex" | "Híbrido" | "Híbrido Plug-in" | "Elétrico";
-  precoReferencia: number;
-  situacao: "Lançado" | "Pré-venda" | "Atualizado" | "A confirmar";
-  confianca: NivelConfianca;
-  resumo: string;
-  // Mídia e links oficiais — populados pelo pipeline a partir da Iteração 6
-  fotoPrincipalUrl?: string | null;
-  galeriaUrls?: string[];
-  linkOficialUrl?: string | null;
-  videoOficialUrl?: string | null;
-};
-
-export const VEICULOS: Veiculo[] = [
-  {
-    demo: true,
-    slug: "exemplo-motors-horizon-suv-2026",
-    nomeComercial: "Horizon SUV",
-    montadoraSlug: "exemplo-motors",
-    marca: "ExemploMotors",
-    geracao: "1ª geração",
-    anoModelo: 2026,
-    dataLancamentoBr: "2026-02-15",
-    categoria: "SUV",
-    propulsao: "Híbrido Plug-in",
-    precoReferencia: 289900,
-    situacao: "Pré-venda",
-    confianca: "nao_confirmado",
-    resumo:
-      "SUV médio híbrido plug-in com central de 12 polegadas e teto panorâmico (dados de demonstração).",
-  },
-  {
-    demo: true,
-    slug: "demo-auto-vector-2026",
-    nomeComercial: "Vector",
-    montadoraSlug: "demo-auto",
-    marca: "Demo Auto",
-    geracao: "1ª geração",
-    anoModelo: 2026,
-    dataLancamentoBr: "2026-03-01",
-    categoria: "SUV",
-    propulsao: "Elétrico",
-    precoReferencia: 219900,
-    situacao: "Lançado",
-    confianca: "bem_fundamentado",
-    resumo:
-      "SUV compacto 100% elétrico com central Android nativa de 15 polegadas (dados de demonstração).",
-  },
-  {
-    demo: true,
-    slug: "placeholder-cars-aurora-sedan-2025",
-    nomeComercial: "Aurora Sedã",
-    montadoraSlug: "placeholder-cars",
-    marca: "Placeholder Cars",
-    geracao: "2ª geração",
-    anoModelo: 2025,
-    dataLancamentoBr: "2025-11-20",
-    categoria: "Sedã",
-    propulsao: "Flex",
-    precoReferencia: 149900,
-    situacao: "Lançado",
-    confianca: "confirmado",
-    resumo:
-      "Sedã médio com central de 10 polegadas e CarPlay com fio (dados de demonstração).",
-  },
-  {
-    demo: true,
-    slug: "exemplo-ev-cityspark-2026",
-    nomeComercial: "CitySpark",
-    montadoraSlug: "exemplo-ev",
-    marca: "ExemploEV",
-    geracao: "1ª geração",
-    anoModelo: 2026,
-    dataLancamentoBr: "2026-04-10",
-    categoria: "Hatch",
-    propulsao: "Elétrico",
-    precoReferencia: 139900,
-    situacao: "Pré-venda",
-    confianca: "nao_confirmado",
-    resumo:
-      "Hatch urbano elétrico com central de 10,25 polegadas (dados de demonstração).",
-  },
-  {
-    demo: true,
-    slug: "exemplo-motors-rally-pickup-2025",
-    nomeComercial: "Rally Picape",
-    montadoraSlug: "exemplo-motors",
-    marca: "ExemploMotors",
-    geracao: "3ª geração — reestilização",
-    anoModelo: 2025,
-    dataLancamentoBr: "2025-09-05",
-    categoria: "Picape",
-    propulsao: "Flex",
-    precoReferencia: 199900,
-    situacao: "Atualizado",
-    confianca: "bem_fundamentado",
-    resumo:
-      "Reestilização de meia-vida com novo cluster digital de 12,3 polegadas (dados de demonstração).",
-  },
-];
 
 export type Multimidia = {
   demo: true;
@@ -195,7 +38,7 @@ export type Multimidia = {
   gpsNativo: EstadoRecurso;
   portasUsb: string;
   altoFalantes: string;
-  confianca: NivelConfianca;
+  confianca: import("./tipos").NivelConfianca;
   observacoes: string;
 };
 
@@ -205,49 +48,7 @@ export type EstadoRecurso =
   | "nao_identificado"
   | "depende_versao";
 
-export const MULTIMIDIAS: Multimidia[] = [
-  {
-    demo: true,
-    veiculoSlug: "exemplo-motors-horizon-suv-2026",
-    fabricante: "Fabricante Demo",
-    modeloEquipamento: "Modelo A-12 (fictício)",
-    tamanhoTela: "12,3\"",
-    resolucao: "1920×720 (fictício)",
-    so: "Android Automotive OS (fictício)",
-    carplayCabo: "confirmado",
-    carplaySemFio: "nao_identificado",
-    androidAutoCabo: "confirmado",
-    androidAutoSemFio: "nao_identificado",
-    bluetooth: "confirmado",
-    wifi: "confirmado",
-    gpsNativo: "confirmado",
-    portasUsb: "2× USB-C (dianteira), 1× USB-A (traseira) — fictício",
-    altoFalantes: "8 alto-falantes (fictício)",
-    confianca: "nao_confirmado",
-    observacoes:
-      "Especificações preliminares de pré-venda. Dados precisam ser confirmados após lançamento oficial.",
-  },
-  {
-    demo: true,
-    veiculoSlug: "placeholder-cars-aurora-sedan-2025",
-    fabricante: "Fabricante Demo B",
-    modeloEquipamento: "Modelo P-10 (fictício)",
-    tamanhoTela: "10,25\"",
-    resolucao: "1280×720 (fictício)",
-    so: "Linux proprietário (fictício)",
-    carplayCabo: "confirmado",
-    carplaySemFio: "nao_disponivel",
-    androidAutoCabo: "confirmado",
-    androidAutoSemFio: "nao_disponivel",
-    bluetooth: "confirmado",
-    wifi: "nao_disponivel",
-    gpsNativo: "depende_versao",
-    portasUsb: "2× USB-A — fictício",
-    altoFalantes: "6 alto-falantes (fictício)",
-    confianca: "bem_fundamentado",
-    observacoes: "Dados verificados em release de imprensa fictício.",
-  },
-];
+export const MULTIMIDIAS: Multimidia[] = [];
 
 export type Lampada = {
   demo: true;
@@ -257,51 +58,10 @@ export type Lampada = {
   tecnologia: "Halógena" | "LED" | "Xenônio" | "Mista";
   potencia: string;
   oem: string;
-  confianca: NivelConfianca;
+  confianca: import("./tipos").NivelConfianca;
 };
 
-export const LAMPADAS: Lampada[] = [
-  {
-    demo: true,
-    veiculoSlug: "placeholder-cars-aurora-sedan-2025",
-    posicao: "Farol baixo",
-    codigo: "H7",
-    tecnologia: "Halógena",
-    potencia: "55 W / 12 V",
-    oem: "A confirmar",
-    confianca: "nao_confirmado",
-  },
-  {
-    demo: true,
-    veiculoSlug: "placeholder-cars-aurora-sedan-2025",
-    posicao: "Farol alto",
-    codigo: "HB3",
-    tecnologia: "Halógena",
-    potencia: "60 W / 12 V",
-    oem: "A confirmar",
-    confianca: "nao_confirmado",
-  },
-  {
-    demo: true,
-    veiculoSlug: "placeholder-cars-aurora-sedan-2025",
-    posicao: "Luz de ré",
-    codigo: "W16W",
-    tecnologia: "Halógena",
-    potencia: "16 W / 12 V",
-    oem: "A confirmar",
-    confianca: "nao_confirmado",
-  },
-  {
-    demo: true,
-    veiculoSlug: "placeholder-cars-aurora-sedan-2025",
-    posicao: "Luz da placa",
-    codigo: "C5W",
-    tecnologia: "Halógena",
-    potencia: "5 W / 12 V",
-    oem: "A confirmar",
-    confianca: "nao_confirmado",
-  },
-];
+export const LAMPADAS: Lampada[] = [];
 
 export type Palheta = {
   demo: true;
@@ -312,33 +72,10 @@ export type Palheta = {
   encaixe: string;
   formato: "Convencional" | "Flat" | "Híbrida";
   oem: string;
-  confianca: NivelConfianca;
+  confianca: import("./tipos").NivelConfianca;
 };
 
-export const PALHETAS: Palheta[] = [
-  {
-    demo: true,
-    veiculoSlug: "placeholder-cars-aurora-sedan-2025",
-    posicao: "Motorista",
-    medidaMm: 600,
-    medidaPol: "24\"",
-    encaixe: "Push button",
-    formato: "Flat",
-    oem: "A confirmar",
-    confianca: "nao_confirmado",
-  },
-  {
-    demo: true,
-    veiculoSlug: "placeholder-cars-aurora-sedan-2025",
-    posicao: "Passageiro",
-    medidaMm: 450,
-    medidaPol: "18\"",
-    encaixe: "Push button",
-    formato: "Flat",
-    oem: "A confirmar",
-    confianca: "nao_confirmado",
-  },
-];
+export const PALHETAS: Palheta[] = [];
 
 export type Interruptor = {
   demo: true;
@@ -348,21 +85,10 @@ export type Interruptor = {
   conector: string;
   iluminado: boolean;
   oem: string;
-  confianca: NivelConfianca;
+  confianca: import("./tipos").NivelConfianca;
 };
 
-export const INTERRUPTORES: Interruptor[] = [
-  {
-    demo: true,
-    veiculoSlug: "placeholder-cars-aurora-sedan-2025",
-    tipo: "Interruptor quádruplo do motorista",
-    pinos: 14,
-    conector: "Formato retangular (fictício)",
-    iluminado: true,
-    oem: "A confirmar",
-    confianca: "nao_confirmado",
-  },
-];
+export const INTERRUPTORES: Interruptor[] = [];
 
 export type CodigoOem = {
   demo: true;
@@ -372,28 +98,10 @@ export type CodigoOem = {
   fabricanteOriginal?: string;
   aplicacoes: string[];
   substituido?: string;
-  confianca: NivelConfianca;
+  confianca: import("./tipos").NivelConfianca;
 };
 
-export const CODIGOS_OEM: CodigoOem[] = [
-  {
-    demo: true,
-    codigo: "DEMO-00001-X",
-    descricao: "Interruptor quádruplo demonstração",
-    categoria: "Componente elétrico",
-    fabricanteOriginal: "Fabricante Demo",
-    aplicacoes: ["placeholder-cars-aurora-sedan-2025"],
-    confianca: "nao_confirmado",
-  },
-  {
-    demo: true,
-    codigo: "DEMO-00042-A",
-    descricao: "Suporte de multimídia demonstração",
-    categoria: "Multimídia / acabamento",
-    aplicacoes: ["exemplo-motors-horizon-suv-2026"],
-    confianca: "nao_confirmado",
-  },
-];
+export const CODIGOS_OEM: CodigoOem[] = [];
 
 export type VendaMensal = {
   demo: true;
@@ -437,16 +145,6 @@ export const VENDAS: VendaMensal[] = [
     variacaoMensal: 0.231,
     participacao: 0.008,
   },
-  {
-    demo: true,
-    mesReferencia: "2026-09",
-    marca: "ExemploEV",
-    modelo: "CitySpark",
-    categoria: "Hatch",
-    emplacamentos: 844,
-    variacaoMensal: 0.408,
-    participacao: 0.004,
-  },
 ];
 
 export type OportunidadeInovacao = {
@@ -465,32 +163,16 @@ export const OPORTUNIDADES: OportunidadeInovacao[] = [
   {
     demo: true,
     slug: "adaptador-carplay-sem-fio-aurora",
-    titulo: "Adaptador CarPlay sem fio para Aurora Sedã",
+    titulo: "Adaptador CarPlay sem fio (modelo de exemplo)",
     descricao:
-      "O Aurora Sedã oferece CarPlay apenas via cabo. Existe demanda por adaptadores de CarPlay sem fio em fóruns de proprietários (dados fictícios).",
-    veiculoAlvo: "Aurora Sedã 2025",
+      "Oportunidades reais serão geradas a partir da coleta automática (Iteração 10) cruzando reclamações, lançamentos e lacunas de catálogo.",
+    veiculoAlvo: "A confirmar",
     categoria: "Multimídia e conectividade",
     prioridade: "Alta",
-    evidencias: 7,
+    evidencias: 0,
     pendencias: [
-      "Confirmar modelo exato da central multimídia",
-      "Validar compatibilidade do protocolo",
-    ],
-  },
-  {
-    demo: true,
-    slug: "palheta-flat-horizon",
-    titulo: "Palheta flat específica para Horizon SUV",
-    descricao:
-      "Medidas e encaixes do Horizon SUV ainda não foram confirmados oficialmente. Oportunidade para desenvolvimento de palheta de aplicação específica (dados fictícios).",
-    veiculoAlvo: "Horizon SUV 2026",
-    categoria: "Palhetas e limpadores",
-    prioridade: "Média",
-    evidencias: 2,
-    pendencias: [
-      "Obter medidas reais da palheta",
-      "Confirmar tipo de encaixe",
-      "Avaliar volume projetado de vendas do veículo",
+      "Coleta real de fontes (Iteração 6)",
+      "Pipeline de oportunidades (Iteração 10)",
     ],
   },
 ];
@@ -522,32 +204,9 @@ export const RELATORIOS: RelatorioSemanal[] = [
       {
         demo: true,
         tipo: "Lançamento",
-        titulo: "Horizon SUV entra em pré-venda (fictício)",
+        titulo: "Exemplo de fato — a plataforma vai preencher este bloco",
         resumo:
-          "Central multimídia de 12,3\" com Android Automotive. CarPlay com fio confirmado; versão sem fio ainda a confirmar.",
-      },
-      {
-        demo: true,
-        tipo: "Oportunidade",
-        titulo: "Adaptador CarPlay sem fio para Aurora Sedã",
-        resumo:
-          "7 relatos em fóruns (fictícios) solicitando solução. Alta prioridade.",
-      },
-    ],
-  },
-  {
-    demo: true,
-    semana: "2026-W40",
-    dataGeracao: "2026-10-06",
-    totalNovidades: 9,
-    totalOportunidades: 2,
-    fatos: [
-      {
-        demo: true,
-        tipo: "Atualização",
-        titulo: "Rally Picape ganha novo cluster (fictício)",
-        resumo:
-          "Cluster digital 12,3\" chega à reestilização. Verificar impacto em interruptores de volante.",
+          "Relatórios reais serão gerados automaticamente a partir da Iteração 11.",
       },
     ],
   },
@@ -568,21 +227,11 @@ export const ACESSORIOS: Acessorio[] = [
     demo: true,
     nome: "Adaptador CarPlay sem fio universal",
     categoria: "Multimídia",
-    veiculosAlvo: ["Aurora Sedã", "Rally Picape"],
-    evidenciasDemanda: 12,
-    concorrentes: 4,
+    veiculosAlvo: ["Modelo de exemplo"],
+    evidenciasDemanda: 0,
+    concorrentes: 0,
     observacao:
-      "Alta busca em marketplaces (dado fictício). Precisa validar compatibilidade por modelo.",
-  },
-  {
-    demo: true,
-    nome: "Kit de LED H7 (farol baixo)",
-    categoria: "Iluminação",
-    veiculosAlvo: ["Aurora Sedã"],
-    evidenciasDemanda: 8,
-    concorrentes: 15,
-    observacao:
-      "Mercado maduro com muita concorrência (dado fictício). Diferenciação técnica necessária.",
+      "Lista real será preenchida pela coleta automática (Iteração 9).",
   },
 ];
 
@@ -599,23 +248,13 @@ export type Opiniao = {
 export const OPINIOES: Opiniao[] = [
   {
     demo: true,
-    tema: "Travamento da central multimídia",
-    veiculo: "Aurora Sedã 2025",
-    recorrencia: 11,
+    tema: "Exemplo de opinião recorrente",
+    veiculo: "Modelo de exemplo",
+    recorrencia: 0,
     periodo: "últimos 30 dias",
-    sentimento: "negativo",
+    sentimento: "misto",
     resumo:
-      "Proprietários relatam reinicializações da central ao conectar CarPlay (relatos fictícios).",
-  },
-  {
-    demo: true,
-    tema: "Qualidade de áudio",
-    veiculo: "Rally Picape 2025",
-    recorrencia: 5,
-    periodo: "últimos 60 dias",
-    sentimento: "positivo",
-    resumo:
-      "Elogios ao áudio da versão topo de linha (relatos fictícios).",
+      "Opiniões reais virão de Reddit, YouTube e fóruns a partir da Iteração 9.",
   },
 ];
 
@@ -623,12 +262,7 @@ export const RESUMO_DASHBOARD = {
   demo: true,
   ultimaExecucao: "2026-10-13T09:12:00-03:00",
   statusExecucao: "sucesso" as const,
-  novidadesSemana: 12,
-  veiculosMonitorados: VEICULOS.length,
-  montadorasMonitoradas: MONTADORAS.length,
-  oportunidadesAbertas: OPORTUNIDADES.length,
-  oemPendentes: CODIGOS_OEM.filter((c) => c.confianca === "nao_confirmado")
-    .length,
+  novidadesSemana: 0, // calculado dinamicamente a partir do banco agora
   tokensUtilizadosSemana: 0,
   custoEstimadoSemanaUsd: 0,
 };
