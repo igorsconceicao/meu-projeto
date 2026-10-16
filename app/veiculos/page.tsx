@@ -7,7 +7,6 @@ import { SeloVerificadoBr } from "@/components/midia/selo-verificado-br";
 import { ResumoTecnicoCard } from "@/components/tecnico/resumo-card";
 import { Badge } from "@/components/ui/badge";
 import { BadgeConfianca } from "@/components/ui/badge-confianca";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -16,7 +15,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FiltrosCatalogo } from "@/components/catalogo/filtros-catalogo";
+import { normalizar } from "@/lib/busca";
 import { buscarVeiculos } from "@/lib/dados/veiculos";
+import type { Veiculo } from "@/lib/tipos";
 import { formatarData, formatarPreco } from "@/lib/utils";
 
 export const metadata = {
@@ -25,10 +27,51 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function PaginaVeiculos() {
+type Filtros = { q?: string; marca?: string; categoria?: string; propulsao?: string; conexao?: string };
+
+function temSemFio(v: Veiculo): boolean {
+  const mm = v.tecnicos?.multimidia;
+  return !!mm && [mm.carplaySemFio, mm.androidAutoSemFio].some((e) => e === "confirmado" || e === "depende_versao");
+}
+
+function filtrar(lista: Veiculo[], f: Filtros): Veiculo[] {
+  const termos = normalizar(f.q ?? "").split(" ").filter(Boolean);
+  return lista.filter((v) => {
+    if (f.marca && v.montadoraSlug !== f.marca) return false;
+    if (f.categoria && v.categoria !== f.categoria) return false;
+    if (f.propulsao && v.propulsao !== f.propulsao) return false;
+    if (f.conexao === "sem-fio" && !temSemFio(v)) return false;
+    if (f.conexao === "so-cabo" && temSemFio(v)) return false;
+    if (termos.length) {
+      const t = v.tecnicos;
+      const texto = normalizar(
+        [v.marca, v.nomeComercial, v.categoria, v.propulsao, v.resumo, t?.ficha?.motor, t?.ficha?.cambio, t?.multimidia?.sistema, t?.multimidia?.telaPolegadas]
+          .filter(Boolean)
+          .join(" "),
+      );
+      if (!termos.every((x) => texto.includes(x))) return false;
+    }
+    return true;
+  });
+}
+
+export default async function PaginaVeiculos({
+  searchParams,
+}: {
+  searchParams: Promise<Filtros>;
+}) {
+  const filtros = await searchParams;
   const todos = await buscarVeiculos();
-  const veiculos = todos.filter((v) => v.completude?.publicavel);
-  const emVerificacao = todos.length - veiculos.length;
+  const publicados = todos.filter((v) => v.completude?.publicavel);
+  const emVerificacao = todos.length - publicados.length;
+  const veiculos = filtrar(publicados, filtros);
+  const filtrando = veiculos.length !== publicados.length;
+
+  const marcas = Array.from(new Map(publicados.map((v) => [v.montadoraSlug, v.marca])))
+    .map(([valor, rotulo]) => ({ valor, rotulo }))
+    .sort((a, b) => a.rotulo.localeCompare(b.rotulo));
+  const categorias = Array.from(new Set(publicados.map((v) => v.categoria))).sort();
+  const propulsoes = Array.from(new Set(publicados.map((v) => v.propulsao))).sort();
 
   return (
     <div className="flex flex-col gap-6">
@@ -37,29 +80,33 @@ export default async function PaginaVeiculos() {
         descricao="Somente modelos vendidos no Brasil e com o pacote mínimo completo: foto real da versão brasileira, fonte oficial brasileira, motor e câmbio, central multimídia (tela, CarPlay e Android Auto) e tipo de farol — cada dado com fonte e data."
       />
 
+      <FiltrosCatalogo marcas={marcas} categorias={categorias} propulsoes={propulsoes} />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          {veiculos.length} modelo{veiculos.length === 1 ? "" : "s"} publicado{veiculos.length === 1 ? "" : "s"}
+          {filtrando ? `${veiculos.length} de ` : ""}
+          {publicados.length} modelo{publicados.length === 1 ? "" : "s"} publicado{publicados.length === 1 ? "" : "s"}
           {emVerificacao > 0 ? (
             <span className="text-muted-foreground/80">
               {" "}· {emVerificacao} em verificação (entram quando os dados mínimos forem confirmados)
             </span>
           ) : null}
         </p>
-        <Input
-          placeholder="Filtrar por marca ou modelo..."
-          className="w-full sm:w-72"
-          aria-label="Filtrar veículos"
-        />
       </div>
 
       {veiculos.length === 0 ? (
         <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
-          Nenhum veículo com o pacote mínimo completo ainda. Acompanhe as pendências no{" "}
-          <Link className="font-medium text-primary hover:underline" href="/admin/veiculos">
-            painel administrativo
-          </Link>
-          .
+          {filtrando ? (
+            <>Nenhum modelo publicado com esses filtros.</>
+          ) : (
+            <>
+              Nenhum veículo com o pacote mínimo completo ainda. Acompanhe as pendências no{" "}
+              <Link className="font-medium text-primary hover:underline" href="/admin/veiculos">
+                painel administrativo
+              </Link>
+              .
+            </>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

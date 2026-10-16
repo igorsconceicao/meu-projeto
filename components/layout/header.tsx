@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Menu, Search } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Sheet,
   SheetContent,
@@ -11,6 +10,7 @@ import {
   SheetTitle,
   SheetHeader,
 } from "@/components/ui/sheet";
+import { BuscaGlobal } from "./busca-global";
 import { ToggleTema } from "./toggle-tema";
 import { Sidebar } from "./sidebar";
 
@@ -36,18 +36,7 @@ export function Header() {
         </SheetContent>
       </Sheet>
 
-      <form
-        className="relative flex-1 max-w-xl"
-        onSubmit={(e) => e.preventDefault()}
-      >
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Buscar marca, modelo, versão, código OEM, componente..."
-          className="pl-9"
-          aria-label="Busca global"
-        />
-      </form>
+      <BuscaGlobal />
 
       <div className="flex items-center gap-1">
         <ToggleTema />

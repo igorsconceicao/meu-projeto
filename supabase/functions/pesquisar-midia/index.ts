@@ -31,6 +31,7 @@ const DOMINIOS_GLOBAIS = [
   "gacmotor.com",
   "gac-motor.com",
   "gacinternational.com",
+  "gacgroup.com",
   "omodajaecoo.com",
   "omodaauto.com",
   "jaecoo.com",

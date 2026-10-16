@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { avaliarCompletude } from "@/lib/completude";
 import { buscarDadosTecnicos, dadosTecnicosVazios } from "@/lib/dados/tecnicos";
 import { criarClienteSupabaseServidor } from "@/lib/supabase/server";
@@ -81,7 +82,7 @@ const SELECT_COM_MONTADORA = `
 `;
 
 /** Todos os veículos (inclusive em verificação), com o checklist de completude. */
-export async function buscarVeiculos(): Promise<Veiculo[]> {
+export const buscarVeiculos = cache(async function buscarVeiculos(): Promise<Veiculo[]> {
   const supabase = await criarClienteSupabaseServidor();
   const [{ data, error }, tecnicos] = await Promise.all([
     supabase
@@ -99,7 +100,7 @@ export async function buscarVeiculos(): Promise<Veiculo[]> {
     v.completude = avaliarCompletude(v, v.tecnicos);
     return v;
   });
-}
+});
 
 /** Só os veículos com o pacote mínimo completo — usados nas páginas públicas. */
 export async function buscarVeiculosPublicados(): Promise<Veiculo[]> {
