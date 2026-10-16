@@ -5,6 +5,7 @@
 //   → título, og:image, canonical, links e imagens que contêm as palavras.
 // POST { acao: "trechos", paginas: [{ id, url, palavras: string[], raio?, max? }] }
 //   → trechos de texto ao redor de cada palavra (ficha técnica, multimídia...).
+//   Aceita também PDFs (fichas técnicas oficiais): o texto é extraído com unpdf.
 // POST { acao: "commons", consultas: [{ id, termo, limite? }] }
 // POST { acao: "commons-categoria", categorias: [{ id, categoria, limite? }] }
 //   → arquivos do Wikimedia Commons com autor, licença, descrição e categorias.
@@ -73,20 +74,36 @@ function meta(html: string, prop: string): string | null {
   return m ? (m[1] ?? m[2] ?? null) : null;
 }
 
-async function baixar(url: string): Promise<{ status: number; finalUrl: string; html: string } | { erro: string; status?: number; finalUrl?: string }> {
+type Baixado = { status: number; finalUrl: string; html: string; pdf: boolean };
+
+async function textoDoPdf(bytes: Uint8Array): Promise<string> {
+  const { extractText, getDocumentProxy } = await import("npm:unpdf@1.4.0");
+  const doc = await getDocumentProxy(bytes);
+  const { text } = await extractText(doc, { mergePages: true });
+  return Array.isArray(text) ? text.join(" | ") : text;
+}
+
+async function baixar(url: string): Promise<Baixado | { erro: string; status?: number; finalUrl?: string }> {
   if (!hostPermitido(url)) return { erro: "dominio-nao-permitido" };
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 20000);
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": UA, "Accept": "text/html,application/xhtml+xml,*/*" },
+      headers: { "User-Agent": UA, "Accept": "text/html,application/xhtml+xml,application/pdf,*/*" },
       redirect: "follow",
       signal: ctrl.signal,
     });
     if (!hostPermitido(res.url)) {
       return { erro: "redirecionou-para-fora", status: res.status, finalUrl: res.url };
     }
-    return { status: res.status, finalUrl: res.url, html: (await res.text()).slice(0, 4_000_000) };
+    const tipo = res.headers.get("content-type") ?? "";
+    if (tipo.includes("pdf") || /\.pdf(?:$|\?)/i.test(res.url)) {
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      if (bytes.byteLength > 15_000_000) return { erro: "pdf-grande-demais", status: res.status, finalUrl: res.url };
+      const texto = await textoDoPdf(bytes);
+      return { status: res.status, finalUrl: res.url, html: texto.slice(0, 2_000_000), pdf: true };
+    }
+    return { status: res.status, finalUrl: res.url, html: (await res.text()).slice(0, 4_000_000), pdf: false };
   } catch (e: any) {
     return { erro: String(e?.message ?? e) };
   } finally {
@@ -181,7 +198,9 @@ async function buscarTrechos(p: { id: string; url: string; palavras: string[]; r
   if ("erro" in r) return { id: p.id, ...r };
   const raio = Math.min(p.raio ?? 140, 400);
   const max = Math.min(p.max ?? 4, 12);
-  const { visivel, dados } = textos(r.html);
+  const { visivel, dados } = r.pdf
+    ? { visivel: r.html.replace(/\s+/g, " ").trim(), dados: "" }
+    : textos(r.html);
   const resultado: Record<string, string[]> = {};
   for (const [origem, texto] of [["v", visivel], ["d", dados]] as const) {
     const norm = semAcento(texto);
@@ -204,7 +223,7 @@ async function buscarTrechos(p: { id: string; url: string; palavras: string[]; r
     id: p.id,
     status: r.status,
     finalUrl: r.finalUrl,
-    titulo: r.html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim() ?? null,
+    titulo: r.pdf ? "(PDF)" : r.html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim() ?? null,
     tamanhoTexto: visivel.length,
     tamanhoDados: dados.length,
     trechos: resultado,
