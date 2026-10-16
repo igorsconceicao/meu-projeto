@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { FiltrosCatalogo } from "@/components/catalogo/filtros-catalogo";
 import { normalizar } from "@/lib/busca";
+import { projecaoSemFio, tipoFarol } from "@/lib/classificacao";
 import { buscarVeiculos } from "@/lib/dados/veiculos";
 import type { Veiculo } from "@/lib/tipos";
 import { formatarData, formatarPreco } from "@/lib/utils";
@@ -27,12 +28,7 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-type Filtros = { q?: string; marca?: string; categoria?: string; propulsao?: string; conexao?: string };
-
-function temSemFio(v: Veiculo): boolean {
-  const mm = v.tecnicos?.multimidia;
-  return !!mm && [mm.carplaySemFio, mm.androidAutoSemFio].some((e) => e === "confirmado" || e === "depende_versao");
-}
+type Filtros = { q?: string; marca?: string; categoria?: string; propulsao?: string; conexao?: string; farol?: string };
 
 function filtrar(lista: Veiculo[], f: Filtros): Veiculo[] {
   const termos = normalizar(f.q ?? "").split(" ").filter(Boolean);
@@ -40,8 +36,9 @@ function filtrar(lista: Veiculo[], f: Filtros): Veiculo[] {
     if (f.marca && v.montadoraSlug !== f.marca) return false;
     if (f.categoria && v.categoria !== f.categoria) return false;
     if (f.propulsao && v.propulsao !== f.propulsao) return false;
-    if (f.conexao === "sem-fio" && !temSemFio(v)) return false;
-    if (f.conexao === "so-cabo" && temSemFio(v)) return false;
+    if (f.conexao === "sem-fio" && projecaoSemFio(v) === "nenhuma") return false;
+    if (f.conexao === "so-cabo" && projecaoSemFio(v) !== "nenhuma") return false;
+    if (f.farol && tipoFarol(v) !== f.farol) return false;
     if (termos.length) {
       const t = v.tecnicos;
       const texto = normalizar(

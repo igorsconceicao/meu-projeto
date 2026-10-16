@@ -15,6 +15,8 @@ export type ItemNavegacao = {
   descricao: string;
   href: string;
   icone: typeof LayoutDashboard;
+  /** Módulo ainda sem dados reais */
+  emBreve?: boolean;
 };
 
 export type GrupoNavegacao = {
@@ -28,7 +30,7 @@ export const NAVEGACAO: GrupoNavegacao[] = [
     itens: [
       {
         titulo: "Dashboard",
-        descricao: "Resumo da semana",
+        descricao: "Resumo do catálogo",
         href: "/",
         icone: LayoutDashboard,
       },
@@ -51,7 +53,7 @@ export const NAVEGACAO: GrupoNavegacao[] = [
       },
       {
         titulo: "Busca por OEM",
-        descricao: "Pesquisa de códigos",
+        descricao: "Lâmpadas e códigos OEM",
         href: "/busca-oem",
         icone: Search,
       },
@@ -64,12 +66,14 @@ export const NAVEGACAO: GrupoNavegacao[] = [
         titulo: "Vendas e rankings",
         descricao: "Fenabrave / Anfavea",
         href: "/mercado",
+        emBreve: true,
         icone: BarChart3,
       },
       {
         titulo: "Tendências",
         descricao: "Opiniões e acessórios",
         href: "/tendencias",
+        emBreve: true,
         icone: TrendingUp,
       },
     ],
@@ -81,12 +85,14 @@ export const NAVEGACAO: GrupoNavegacao[] = [
         titulo: "Oportunidades",
         descricao: "Para o laboratório",
         href: "/oportunidades",
+        emBreve: true,
         icone: Lightbulb,
       },
       {
-        titulo: "Relatórios semanais",
-        descricao: "Histórico executivo",
+        titulo: "Relatórios",
+        descricao: "Histórico de atualizações",
         href: "/relatorios",
+        emBreve: true,
         icone: FileText,
       },
     ],
@@ -96,7 +102,7 @@ export const NAVEGACAO: GrupoNavegacao[] = [
     itens: [
       {
         titulo: "Administração",
-        descricao: "Fontes e configurações",
+        descricao: "Cadastro e pendências",
         href: "/admin",
         icone: Settings,
       },

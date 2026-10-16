@@ -43,7 +43,7 @@ export function FiltrosCatalogo({
     return () => clearTimeout(t);
   }, [texto, params, aplicar]);
 
-  const temFiltro = ["q", "marca", "categoria", "propulsao", "conexao"].some((k) => params.get(k));
+  const temFiltro = ["q", "marca", "categoria", "propulsao", "conexao", "farol"].some((k) => params.get(k));
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border bg-card p-3 lg:flex-row lg:items-center">
@@ -106,6 +106,16 @@ export function FiltrosCatalogo({
           <option value="">Qualquer conectividade</option>
           <option value="sem-fio">CarPlay/Android Auto sem fio</option>
           <option value="so-cabo">Sem projeção sem fio confirmada</option>
+        </select>
+        <select
+          className={CLASSE_SELECT}
+          value={params.get("farol") ?? ""}
+          onChange={(e) => aplicar("farol", e.target.value)}
+          aria-label="Faróis"
+        >
+          <option value="">Qualquer farol</option>
+          <option value="led">Farol LED</option>
+          <option value="halogeno">Farol halógeno</option>
         </select>
       </div>
       {temFiltro ? (

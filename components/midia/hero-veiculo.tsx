@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { Veiculo } from "@/lib/dados-demo";
+import type { Veiculo } from "@/lib/tipos";
 import { FotoVeiculo } from "./foto-veiculo";
 import { LogoMontadora } from "./logo-montadora";
 import { SeloVerificadoBr } from "./selo-verificado-br";

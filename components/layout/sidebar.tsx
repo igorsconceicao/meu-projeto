@@ -52,7 +52,14 @@ export function Sidebar({ className }: { className?: string }) {
                     >
                       <item.icone className="h-4 w-4 shrink-0" />
                       <div className="flex flex-col leading-tight">
-                        <span className="font-medium">{item.titulo}</span>
+                        <span className="flex items-center gap-1.5 font-medium">
+                          {item.titulo}
+                          {item.emBreve ? (
+                            <span className="rounded bg-muted px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              em breve
+                            </span>
+                          ) : null}
+                        </span>
                         <span className="text-[11px] text-muted-foreground">
                           {item.descricao}
                         </span>
@@ -66,8 +73,8 @@ export function Sidebar({ className }: { className?: string }) {
         ))}
       </nav>
       <div className="border-t px-4 py-3 text-xs text-muted-foreground">
-        <p className="font-medium text-foreground">v0.1 · demo</p>
-        <p>Dados ainda são de demonstração</p>
+        <p className="font-medium text-foreground">Catálogo com fontes oficiais</p>
+        <p>Só dados confirmados em sites brasileiros das montadoras</p>
       </div>
     </aside>
   );

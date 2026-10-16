@@ -40,7 +40,7 @@ export default function RootLayout({
                 <div className="mx-auto w-full max-w-7xl">{children}</div>
               </main>
               <footer className="border-t px-4 py-4 text-center text-xs text-muted-foreground md:px-8">
-                Plataforma interna · dados técnicos e comerciais com rastreabilidade de fontes · versão 0.1
+                Plataforma interna · cada dado técnico tem fonte oficial, data de consulta e nível de confiança
               </footer>
             </div>
           </div>

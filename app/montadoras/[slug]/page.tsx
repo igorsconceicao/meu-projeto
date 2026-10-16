@@ -14,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { projecaoSemFio, tipoFarol } from "@/lib/classificacao";
 import { buscarMontadoras } from "@/lib/dados/montadoras";
 import { buscarVeiculos } from "@/lib/dados/veiculos";
 
@@ -36,13 +37,8 @@ export default async function PaginaMontadora({ params }: { params: Promise<{ sl
   const emVerificacao = daMarca.filter((v) => !v.completude?.publicavel);
 
   // Resumo de conectividade da marca (só publicados)
-  const semFio = publicados.filter((v) => {
-    const mm = v.tecnicos?.multimidia;
-    return !!mm && [mm.carplaySemFio, mm.androidAutoSemFio].some((e) => e === "confirmado" || e === "depende_versao");
-  }).length;
-  const farolLed = publicados.filter((v) =>
-    v.tecnicos?.iluminacao.some((i) => /farol/i.test(i.posicao) && /led/i.test(i.tecnologia ?? "")),
-  ).length;
+  const semFio = publicados.filter((v) => projecaoSemFio(v) !== "nenhuma").length;
+  const farolLed = publicados.filter((v) => tipoFarol(v) === "led").length;
 
   return (
     <div className="flex flex-col gap-6">

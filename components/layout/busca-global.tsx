@@ -54,10 +54,7 @@ export function BuscaGlobal() {
   // Busca as sugestões 200 ms depois que a pessoa para de digitar.
   React.useEffect(() => {
     const termo = q.trim();
-    if (termo.length < 2) {
-      setSugestoes(null);
-      return;
-    }
+    if (termo.length < 2) return; // menos de 2 letras: a lista nem é exibida
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       setCarregando(true);

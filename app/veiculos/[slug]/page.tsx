@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, ArrowLeft, Calendar, Car, ExternalLink, Zap } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Car,
+  Cog,
+  ExternalLink,
+  Gauge,
+  Lightbulb,
+  MonitorSmartphone,
+  Wifi,
+} from "lucide-react";
 import { BotaoSiteOficial } from "@/components/midia/botao-site-oficial";
 import { GaleriaVeiculo } from "@/components/midia/galeria-veiculo";
 import { HeroVeiculo } from "@/components/midia/hero-veiculo";
@@ -31,6 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { projecaoSemFio } from "@/lib/classificacao";
 import { fonteOficialBr } from "@/lib/completude";
 import { buscarVeiculoPorSlug } from "@/lib/dados/veiculos";
 import { criarClienteSupabaseServidor } from "@/lib/supabase/server";
@@ -85,6 +96,8 @@ export default async function PaginaFichaVeiculo({
     ),
   );
   const pendencias = completude.complementares.filter((i) => !i.ok);
+  const semFio = projecaoSemFio(veiculo);
+  const farolPrincipal = iluminacao.find((i) => /farol/i.test(i.posicao) && i.tecnologia);
 
   return (
     <div className="flex flex-col gap-6">
@@ -130,42 +143,48 @@ export default async function PaginaFichaVeiculo({
         />
       </div>
 
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Categoria</p>
-            <p className="mt-1 font-semibold flex items-center gap-1.5">
-              <Car className="h-4 w-4 text-muted-foreground" />
-              {veiculo.categoria}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Propulsão</p>
-            <p className="mt-1 font-semibold flex items-center gap-1.5">
-              <Zap className="h-4 w-4 text-muted-foreground" />
-              {veiculo.propulsao}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Lançamento no Brasil</p>
-            <p className="mt-1 font-semibold flex items-center gap-1.5">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              {veiculo.dataLancamentoBr ? formatarData(veiculo.dataLancamentoBr) : "A confirmar"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Preço de referência</p>
-            <p className="mt-1 font-semibold">
-              {veiculo.precoReferencia ? formatarPreco(veiculo.precoReferencia) : "A confirmar"}
-            </p>
-          </CardContent>
-        </Card>
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <Destaque icone={Car} rotulo="Categoria" valor={veiculo.categoria} detalhe={veiculo.propulsao} />
+        <Destaque
+          icone={Gauge}
+          rotulo="Motor"
+          valor={ficha?.motor ?? "A confirmar"}
+          detalhe={ficha?.potencia ?? undefined}
+        />
+        <Destaque
+          icone={Cog}
+          rotulo={veiculo.propulsao === "Elétrico" ? "Bateria / autonomia" : "Câmbio"}
+          valor={
+            (veiculo.propulsao === "Elétrico" ? ficha?.bateria ?? ficha?.autonomia : ficha?.cambio) ?? "A confirmar"
+          }
+          detalhe={veiculo.propulsao === "Elétrico" && ficha?.bateria ? ficha?.autonomia ?? undefined : undefined}
+        />
+        <Destaque
+          icone={MonitorSmartphone}
+          rotulo="Central multimídia"
+          valor={multimidia?.telaPolegadas ? `Tela ${multimidia.telaPolegadas}` : "A confirmar"}
+          detalhe={multimidia?.sistema ?? undefined}
+        />
+        <Destaque
+          icone={Wifi}
+          rotulo="CarPlay / Android Auto"
+          valor={
+            !multimidia || multimidia.carplay === "nao_identificado"
+              ? "A confirmar"
+              : semFio === "todas"
+                ? "Sem fio"
+                : semFio === "algumas"
+                  ? "Sem fio em algumas versões"
+                  : "Compatível"
+          }
+          detalhe={semFio === "nenhuma" && multimidia && multimidia.carplay !== "nao_identificado" ? "Sem fio não confirmado" : undefined}
+        />
+        <Destaque
+          icone={Lightbulb}
+          rotulo="Farol principal"
+          valor={farolPrincipal?.tecnologia ?? "A confirmar"}
+          detalhe={farolPrincipal?.versoes ?? undefined}
+        />
       </section>
 
       <Tabs defaultValue="geral" className="w-full">
@@ -610,5 +629,32 @@ function ItemFonte({ url, rotulo, data }: { url: string; rotulo: string; data: s
         {data ? <span className="ml-1 font-normal text-muted-foreground">· {formatarData(data)}</span> : null}
       </a>
     </li>
+  );
+}
+
+function Destaque({
+  icone: Icone,
+  rotulo,
+  valor,
+  detalhe,
+}: {
+  icone: typeof Car;
+  rotulo: string;
+  valor: string;
+  detalhe?: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Icone className="h-3.5 w-3.5" />
+          {rotulo}
+        </p>
+        <p className={`mt-1 line-clamp-3 text-sm font-semibold ${valor === "A confirmar" ? "text-muted-foreground" : ""}`}>
+          {valor}
+        </p>
+        {detalhe ? <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{detalhe}</p> : null}
+      </CardContent>
+    </Card>
   );
 }
