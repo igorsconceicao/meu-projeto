@@ -137,7 +137,9 @@ export default async function PaginaVeiculos({
                         {v.nomeComercial}
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        {v.geracao} · ano {v.anoModelo ?? "a confirmar"}
+                        {[v.geracao !== "A confirmar" ? v.geracao : null, v.anoModelo ? `ano-modelo ${v.anoModelo}` : null]
+                          .filter(Boolean)
+                          .join(" · ") || v.situacao}
                       </CardDescription>
                     </div>
                   </div>
