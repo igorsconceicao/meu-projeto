@@ -103,14 +103,13 @@ export async function salvarVeiculo(id: string | null, dados: FormData) {
     video_oficial_url: String(dados.get("video_oficial_url") ?? "").trim() || null,
   };
 
-  const galeriaBruta = String(dados.get("galeria_urls") ?? "").trim();
-  const galeria = galeriaBruta
-    ? galeriaBruta
-        .split(/\r?\n/)
-        .map((u) => u.trim())
-        .filter(Boolean)
-    : [];
-  payload.galeria_urls = galeria;
+  // Só mexe na galeria quando o formulário traz o campo (senão apagaria a existente).
+  if (dados.has("galeria_urls")) {
+    payload.galeria_urls = String(dados.get("galeria_urls") ?? "")
+      .split(/\r?\n/)
+      .map((u) => u.trim())
+      .filter(Boolean);
+  }
 
   const preco = String(dados.get("preco_referencia") ?? "").trim();
   if (preco) payload.preco_referencia = Number(preco);

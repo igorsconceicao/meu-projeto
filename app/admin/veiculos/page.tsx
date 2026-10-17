@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Eye, Pencil, PlusCircle } from "lucide-react";
+import { CheckCircle2, Eye, Pencil, PlusCircle, Wrench } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
 import { BotaoExcluirVeiculo } from "@/components/admin/botoes-excluir";
 import { FotoVeiculo } from "@/components/midia/foto-veiculo";
@@ -96,13 +96,13 @@ export default async function PaginaAdminVeiculos() {
                     ) : (
                       <div className="space-y-1">
                         <Badge variant="warning">Em verificação</Badge>
-                        <p className="text-[11px] leading-snug text-muted-foreground">
+                        <Link href={`/admin/veiculos/${v.id}/tecnicos`} className="block text-[11px] leading-snug text-muted-foreground hover:text-primary">
                           Falta:{" "}
                           {v.completude?.obrigatorios
                             .filter((i) => !i.ok)
                             .map((i) => i.rotulo.toLowerCase())
                             .join(", ")}
-                        </p>
+                        </Link>
                       </div>
                     )}
                   </TableCell>
@@ -124,6 +124,11 @@ export default async function PaginaAdminVeiculos() {
                       <Button variant="ghost" size="icon" asChild aria-label={`Ver ficha de ${v.nomeComercial}`}>
                         <Link href={`/veiculos/${v.slug}`}>
                           <Eye className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" size="icon" asChild aria-label={`Dados técnicos de ${v.nomeComercial}`} title="Dados técnicos">
+                        <Link href={`/admin/veiculos/${v.id}/tecnicos`}>
+                          <Wrench className="h-4 w-4" />
                         </Link>
                       </Button>
                       <Button variant="ghost" size="icon" asChild aria-label={`Editar ${v.nomeComercial}`}>

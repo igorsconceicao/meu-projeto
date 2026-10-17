@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Wrench } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
 import { FormVeiculo } from "@/components/admin/form-veiculo";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,16 @@ export default async function PaginaEditarVeiculo({
           ehNovo
             ? "Campos obrigatórios: montadora, nome comercial, categoria, propulsão, ano-modelo."
             : "Edite os dados abaixo. Alterações aparecem no site público imediatamente."
+        }
+        acoes={
+          ehNovo ? undefined : (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/admin/veiculos/${id}/tecnicos`}>
+                <Wrench className="h-4 w-4" />
+                Dados técnicos
+              </Link>
+            </Button>
+          )
         }
       />
       <FormVeiculo veiculo={veiculo} montadoras={montadoras} />
