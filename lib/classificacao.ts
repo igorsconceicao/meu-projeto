@@ -18,3 +18,14 @@ export function tipoFarol(v: Veiculo): "led" | "halogeno" | "outro" {
   if (f.some((i) => /hal[oó]gen/i.test(i.tecnologia!))) return "halogeno";
   return "outro";
 }
+
+/** Como `tipoFarol`, mas separa os modelos com halógeno em umas versões e LED em outras. */
+export function farolPorVersao(v: Veiculo): "led" | "misto" | "halogeno" | "outro" {
+  const f = v.tecnicos?.iluminacao.filter((i) => /farol/i.test(i.posicao) && i.tecnologia) ?? [];
+  const led = f.some((i) => /led/i.test(i.tecnologia!));
+  const halogeno = f.some((i) => /hal[oó]gen/i.test(i.tecnologia!));
+  if (led && halogeno) return "misto";
+  if (led) return "led";
+  if (halogeno) return "halogeno";
+  return "outro";
+}

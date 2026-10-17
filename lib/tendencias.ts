@@ -1,6 +1,6 @@
 // Tendências calculadas a partir de dados reais: ranking Fenabrave (mês a mês)
 // e fichas técnicas publicadas. Nenhum número é estimado ou extrapolado.
-import { projecaoSemFio, tipoFarol } from "@/lib/classificacao";
+import { farolPorVersao, projecaoSemFio } from "@/lib/classificacao";
 import { slugsMarca, type Emplacamento } from "@/lib/dados/emplacamentos";
 import type { Montadora, Veiculo } from "@/lib/tipos";
 
@@ -130,7 +130,8 @@ export function tecnologiaPorOrigem(veiculos: Veiculo[], montadoras: Montadora[]
     return {
       modelos: lista.length,
       semFio: lista.filter((v) => projecaoSemFio(v) !== "nenhuma").length,
-      led: lista.filter((v) => tipoFarol(v) === "led").length,
+      led: lista.filter((v) => farolPorVersao(v) === "led").length,
+      halogeno: lista.filter((v) => ["misto", "halogeno"].includes(farolPorVersao(v))).length,
       eletrificados: lista.filter((v) => v.propulsao !== "Flex" && v.propulsao !== "Combustão").length,
       telaMediana: telas.length ? [...telas].sort((a, b) => a - b)[Math.floor(telas.length / 2)] : null,
       telaGrande: telas.filter((t) => t >= 12).length,

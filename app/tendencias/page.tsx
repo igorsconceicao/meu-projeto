@@ -180,6 +180,7 @@ export default async function PaginaTendencias() {
             <CardTitle className="text-base">Tecnologia embarcada por origem da marca</CardTitle>
             <CardDescription>
               Modelos publicados no catálogo. “Sem fio” = CarPlay ou Android Auto sem fio confirmado em todas ou em algumas versões.
+              “Halógeno” = farol halógeno em ao menos uma versão.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -189,7 +190,8 @@ export default async function PaginaTendencias() {
                   <TableHead>Origem</TableHead>
                   <TableHead className="text-right">Modelos</TableHead>
                   <TableHead className="text-right">Sem fio</TableHead>
-                  <TableHead className="text-right">Farol LED</TableHead>
+                  <TableHead className="text-right">Só LED</TableHead>
+                  <TableHead className="text-right">Halógeno</TableHead>
                   <TableHead className="text-right">Tela ≥ 12&quot;</TableHead>
                   <TableHead className="text-right">Eletrificados</TableHead>
                 </TableRow>
@@ -201,6 +203,7 @@ export default async function PaginaTendencias() {
                     <TableCell className="text-right tabular-nums">{l.modelos}</TableCell>
                     <TableCell className="text-right tabular-nums">{pct(l.semFio, l.modelos)}</TableCell>
                     <TableCell className="text-right tabular-nums">{pct(l.led, l.modelos)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{pct(l.halogeno, l.modelos)}</TableCell>
                     <TableCell className="text-right tabular-nums">{pct(l.telaGrande, l.modelos)}</TableCell>
                     <TableCell className="text-right tabular-nums">{pct(l.eletrificados, l.modelos)}</TableCell>
                   </TableRow>

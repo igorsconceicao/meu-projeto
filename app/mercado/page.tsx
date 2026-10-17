@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { projecaoSemFio, tipoFarol } from "@/lib/classificacao";
+import { farolPorVersao, projecaoSemFio } from "@/lib/classificacao";
 import { buscarEmplacamentos, ligarAoCatalogo, type Emplacamento } from "@/lib/dados/emplacamentos";
 import { buscarVeiculos } from "@/lib/dados/veiculos";
 import { cn, formatarNumero } from "@/lib/utils";
@@ -133,7 +133,7 @@ export default async function PaginaMercado({ searchParams }: { searchParams: Pr
                 const ant = visao === "mensal" ? posAnterior.get(`${e.marca}/${e.modelo}`) : undefined;
                 const publicado = e.veiculo?.completude?.publicavel;
                 const semFio = publicado ? projecaoSemFio(e.veiculo!) : null;
-                const farol = publicado ? tipoFarol(e.veiculo!) : null;
+                const farol = publicado ? farolPorVersao(e.veiculo!) : null;
                 return (
                   <TableRow key={e.posicao}>
                     <TableCell className="text-right tabular-nums text-muted-foreground">{e.posicao}º</TableCell>
@@ -171,7 +171,7 @@ export default async function PaginaMercado({ searchParams }: { searchParams: Pr
                       {semFio === null ? <span className="text-muted-foreground">—</span> : semFio === "todas" ? "Sim" : semFio === "algumas" ? "Algumas versões" : "Não confirmado"}
                     </TableCell>
                     <TableCell className="hidden text-sm lg:table-cell">
-                      {farol === null ? <span className="text-muted-foreground">—</span> : farol === "led" ? "LED" : farol === "halogeno" ? "Halógeno" : "—"}
+                      {farol === null ? <span className="text-muted-foreground">—</span> : farol === "led" ? "LED" : farol === "misto" ? "Halógeno / LED" : farol === "halogeno" ? "Halógeno" : "—"}
                     </TableCell>
                   </TableRow>
                 );
