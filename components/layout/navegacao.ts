@@ -64,9 +64,8 @@ export const NAVEGACAO: GrupoNavegacao[] = [
     itens: [
       {
         titulo: "Vendas e rankings",
-        descricao: "Fenabrave / Anfavea",
+        descricao: "Emplacamentos Fenabrave",
         href: "/mercado",
-        emBreve: true,
         icone: BarChart3,
       },
       {
@@ -83,16 +82,14 @@ export const NAVEGACAO: GrupoNavegacao[] = [
     itens: [
       {
         titulo: "Oportunidades",
-        descricao: "Para o laboratório",
+        descricao: "Catálogo × vendas",
         href: "/oportunidades",
-        emBreve: true,
         icone: Lightbulb,
       },
       {
         titulo: "Relatórios",
         descricao: "Histórico de atualizações",
         href: "/relatorios",
-        emBreve: true,
         icone: FileText,
       },
     ],
