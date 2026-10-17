@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  BarChart3,
   Building2,
   Car,
   CheckCircle2,
@@ -8,6 +9,7 @@ import {
   Lightbulb,
   MonitorSmartphone,
   Search,
+  TrendingUp,
   Wifi,
 } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
@@ -22,8 +24,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { buscarEmplacamentos } from "@/lib/dados/emplacamentos";
 import { buscarMontadoras } from "@/lib/dados/montadoras";
 import { buscarVeiculos } from "@/lib/dados/veiculos";
+import { calcularOportunidades } from "@/lib/oportunidades";
+import { participacaoPorOrigem } from "@/lib/tendencias";
 import { projecaoSemFio as conexao, tipoFarol as farol } from "@/lib/classificacao";
 import { formatarData, formatarNumero } from "@/lib/utils";
 
@@ -39,7 +44,11 @@ const ITENS_MINIMOS = [
 ];
 
 export default async function PaginaDashboard() {
-  const [montadoras, todos] = await Promise.all([buscarMontadoras(), buscarVeiculos()]);
+  const [montadoras, todos, emplacamentos] = await Promise.all([
+    buscarMontadoras(),
+    buscarVeiculos(),
+    buscarEmplacamentos(),
+  ]);
   const publicados = todos.filter((v) => v.completude?.publicavel);
   const emVerificacao = todos.length - publicados.length;
   const total = publicados.length || 1;
@@ -71,6 +80,18 @@ export default async function PaginaDashboard() {
     .filter((d): d is string => !!d)
     .sort()
     .at(-1);
+
+  // Mercado: líder de automóveis no último mês e oportunidades abertas.
+  const ultimoMes = emplacamentos.filter((e) => e.tipo === "mensal").map((e) => e.periodo).sort().at(-1);
+  const lider = emplacamentos.find(
+    (e) => e.tipo === "mensal" && e.periodo === ultimoMes && e.segmento === "Automóveis" && e.posicao === 1,
+  );
+  const { oportunidades } = calcularOportunidades(todos, emplacamentos);
+  const origem = participacaoPorOrigem(emplacamentos, montadoras);
+  const ultimaOrigem = origem.linhas.at(-1);
+  const fatiaChina = ultimaOrigem ? Math.round(((ultimaOrigem.porPais.get("China") ?? 0) / (ultimaOrigem.total || 1)) * 100) : null;
+  const nomeMes = (p?: string) =>
+    p ? new Date(`${p}T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) : "";
 
   const indicadores = [
     {
@@ -151,6 +172,52 @@ export default async function PaginaDashboard() {
           </Link>
         ))}
       </section>
+
+      {lider ? (
+        <section className="grid gap-4 md:grid-cols-3">
+          <Link href="/mercado" className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/50">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Carro mais emplacado em {nomeMes(ultimoMes)}</span>
+              <BarChart3 className="h-4 w-4" />
+            </div>
+            <p className="mt-2 truncate text-2xl font-semibold">{lider.marca}/{lider.modelo}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{formatarNumero(lider.unidades)} unidades · ranking oficial Fenabrave</p>
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
+              Ver os 50 mais vendidos <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+          <Link href="/oportunidades" className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/50">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Oportunidades para o laboratório</span>
+              <Lightbulb className="h-4 w-4" />
+            </div>
+            <ul className="mt-2 space-y-0.5 text-sm">
+              {oportunidades.slice(0, 3).map((o) => (
+                <li key={o.chave} className="flex justify-between gap-2">
+                  <span className="truncate">{o.titulo}</span>
+                  <span className="shrink-0 font-medium tabular-nums">{o.alvos.length}</span>
+                </li>
+              ))}
+            </ul>
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
+              Ver modelos e evidências <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+          <Link href="/tendencias" className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/50">
+            <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <span>Marcas chinesas no top 50</span>
+              <TrendingUp className="h-4 w-4" />
+            </div>
+            <p className="mt-2 text-2xl font-semibold tabular-nums">{fatiaChina !== null ? `${fatiaChina}%` : "—"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Das unidades dos 50 mais emplacados (automóveis + comerciais) em {nomeMes(ultimoMes)}
+            </p>
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
+              Ver tendências <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+            </span>
+          </Link>
+        </section>
+      ) : null}
 
       <section className="grid gap-4 lg:grid-cols-3">
         <Card>
