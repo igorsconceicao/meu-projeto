@@ -2,41 +2,35 @@
 
 Central interna de inteligência de mercado automotivo brasileiro: lançamentos a partir de 2025, multimídia e conectividade (CarPlay / Android Auto), lâmpadas, palhetas, interruptores, códigos OEM, vendas, tendências e oportunidades de inovação.
 
-> **Status:** Iteração 1 (fundação visível). Todas as informações exibidas no site ainda são **dados de demonstração**, marcados como tal. A coleta real de fontes começa na Iteração 6.
+> **Status:** catálogo real em produção — https://meu-projeto-puce-gamma.vercel.app. Nenhum dado é inventado: cada informação técnica tem link da fonte oficial, data de consulta e nível de confiança; o que falta aparece como pendência.
 
 ---
 
-## O que já funciona nesta versão
+## O que o site faz
 
-- Site navegável com visual profissional (tema claro e escuro, responsivo).
-- Menu lateral com todas as seções do projeto:
-  - **Dashboard** — resumo da semana.
-  - **Montadoras** — lista de marcas monitoradas.
-  - **Veículos** — catálogo e ficha técnica completa.
-  - **Busca por OEM** — pesquisa de códigos (visual).
-  - **Mercado** — rankings e vendas.
-  - **Tendências** — opiniões e acessórios em alta.
-  - **Oportunidades** — recomendações para o laboratório.
-  - **Relatórios semanais** — histórico executivo.
-  - **Administração** — fontes, custos, usuários.
-- Busca global no cabeçalho (visual).
-- Dados demo claramente identificados em todas as páginas.
+| Seção | O que mostra | De onde vêm os dados |
+|---|---|---|
+| **Dashboard** | Resumo clicável do catálogo (conectividade, faróis, propulsão, marcas) | Catálogo técnico |
+| **Montadoras** | Marcas vendidas no Brasil, modelos publicados e em verificação | Sites oficiais brasileiros |
+| **Veículos** | Catálogo com filtros (marca, categoria, propulsão, CarPlay/AA sem fio, farol) e ficha completa | Sites, fichas técnicas em PDF e salas de imprensa oficiais |
+| **Busca** | Busca global no topo (modelos, marcas, componentes) | Catálogo |
+| **Busca por OEM** | Pesquisa por código de peça | Só códigos com fonte |
+| **Mercado** | 50 mais emplacados (automóveis e comerciais), mês e acumulado, ligados às fichas | Fenabrave (PDF oficial) |
+| **Tendências** | Quem sobe e cai no ranking, participação por origem da marca, tecnologia por origem | Fenabrave + catálogo |
+| **Oportunidades** | Listas para o laboratório (adaptador sem fio, faróis halógenos, central para versões, lacunas) com critério e evidência | Catálogo × Fenabrave |
+| **Relatórios** | Situação por marca, histórico das rodadas e exportação CSV (abre no Excel) | Catálogo |
+| **Admin** | Cadastro de marcas e veículos, edição dos dados técnicos com fonte, revisão de novidades | — |
 
-## O que **ainda não** funciona (próximas iterações)
+Um modelo só aparece no site quando tem o pacote mínimo: foto real da versão brasileira, página oficial BR, motor e câmbio (ou bateria/autonomia), tela da central, CarPlay e Android Auto e tecnologia dos faróis.
 
-| Iteração | Entrega |
-|---|---|
-| 2 | Banco de dados (Supabase) + cadastro manual pelo admin |
-| 3 | Login seguro no painel |
-| 4 | Fichas técnicas detalhadas com evidências |
-| 5 | Busca semântica por OEM |
-| 6 | Coleta real de fontes (RSS + sites) |
-| 7 | IA Gemini extraindo dados de notícias |
-| 8 | Importação Fenabrave / Anfavea |
-| 9 | Opiniões (Reddit / YouTube) + acessórios |
-| 10 | Pipeline de oportunidades |
-| 11 | Agendamento semanal automático (GitHub Actions) |
-| 12 | Exportação PDF / Excel |
+## Como o site se atualiza sozinho
+
+| O quê | Quando | Como |
+|---|---|---|
+| Ranking de emplacamentos | Diariamente do dia 1 ao 15 de cada mês (07:17, Brasília) | Função `importar-fenabrave` lê o PDF oficial mais recente da Fenabrave |
+| Novidades nas montadoras | Toda segunda-feira (07:23, Brasília) | Função `monitorar-novidades` lê a página de gama de cada marca (ou o sitemap oficial), compara com a semana anterior e confere se as páginas dos modelos seguem no ar |
+
+As novidades **não entram no site sozinhas**: aparecem em **Admin → Novidades detectadas** para revisão. Ali também fica a lista de modelos que a página oficial da marca mostra e que ainda não estão no catálogo. Sites que bloqueiam leitura automática (Honda, Toyota, Volvo, CAOA Chery, CAOA Changan) são cobertos nas rodadas manuais de pesquisa; Fiat, Jeep, Ram e Citroën são monitorados pelo portal de imprensa da Stellantis.
 
 ---
 
@@ -44,15 +38,14 @@ Central interna de inteligência de mercado automotivo brasileiro: lançamentos 
 
 | Camada | Ferramenta |
 |---|---|
-| Framework | Next.js 15 (App Router) + TypeScript |
+| Framework | Next.js 16 (App Router) + TypeScript |
 | UI | Tailwind CSS, shadcn/ui-style, lucide-react |
 | Hospedagem | Vercel Hobby |
-| Banco (iteração 2) | Supabase Free |
-| IA (iteração 7) | Google Gemini (plano gratuito) |
-| Agendamento | GitHub Actions (cron) |
-| Scraping | Cheerio + Playwright + rss-parser |
+| Banco | Supabase Free (Postgres + Auth + Edge Functions) |
+| Agendamento | pg_cron no Supabase |
+| Leitura de PDF | unpdf (nas Edge Functions) |
 
-Zero custo recorrente nesta primeira versão.
+Zero custo recorrente: nenhuma rotina usa IA paga.
 
 ---
 
@@ -109,37 +102,39 @@ Nada neste arquivo é usado ainda nesta primeira iteração.
 
 ```
 meu-projeto/
-├── app/                # páginas (rotas) do Next.js
-│   ├── page.tsx        # dashboard (home)
-│   ├── layout.tsx      # layout global (sidebar + header)
-│   ├── montadoras/     # lista de marcas
-│   ├── veiculos/       # catálogo + ficha técnica
-│   ├── busca-oem/      # busca por código OEM
-│   ├── mercado/        # vendas e rankings
-│   ├── tendencias/     # opiniões e acessórios
-│   ├── oportunidades/  # recomendações para o laboratório
-│   ├── relatorios/     # relatórios semanais
-│   └── admin/          # painel administrativo
-├── components/
-│   ├── layout/         # sidebar, header, cabeçalho de página
-│   ├── ui/             # botões, cartões, tabelas, etc.
-│   └── theme-provider.tsx
+├── app/                    # páginas (rotas) do Next.js
+│   ├── page.tsx            # dashboard
+│   ├── montadoras/         # marcas e página de cada marca
+│   ├── veiculos/           # catálogo + ficha técnica
+│   ├── busca/, busca-oem/  # buscas
+│   ├── mercado/            # ranking Fenabrave
+│   ├── tendencias/         # movimentos de vendas e tecnologia
+│   ├── oportunidades/      # listas para o laboratório
+│   ├── relatorios/         # situação do catálogo + exportação
+│   ├── api/                # busca (JSON) e exportação (CSV)
+│   └── admin/              # painel: cadastro, dados técnicos, novidades
+├── components/             # layout, catálogo, ficha técnica, admin, ui
 ├── lib/
-│   ├── dados-demo.ts   # ← todos os dados fictícios do site
-│   └── utils.ts        # funções utilitárias (formatação pt-BR)
-├── public/             # imagens estáticas
-└── ...
+│   ├── dados/              # leitura do banco (veículos, montadoras, técnicos, emplacamentos)
+│   ├── completude.ts       # regra de publicação (pacote mínimo)
+│   ├── oportunidades.ts    # regras das oportunidades
+│   ├── tendencias.ts       # cálculos das tendências
+│   └── monitor.ts          # cobertura do catálogo × páginas oficiais
+└── supabase/
+    ├── migrations/         # estrutura do banco
+    └── functions/          # rotinas automáticas (Fenabrave, monitoramento, pesquisa de mídia)
 ```
 
 ### Como mudar os dados exibidos
 
-Enquanto o banco de dados não está ativo, tudo que você vê vem do arquivo `lib/dados-demo.ts`. Alterando os valores lá e rodando `npm run dev`, o site atualiza na hora.
+Tudo vem do banco Supabase. Entre em **/admin** (usuário e senha do painel): ali se cadastram marcas e veículos e, em cada veículo, o botão **Dados técnicos** abre a edição de ficha, multimídia, iluminação, palhetas e interruptores — sempre com o link da fonte.
 
 ---
 
 ## Regras técnicas do projeto
 
-- Nunca inventar OEMs, especificações, vendas ou aplicações. Informação não encontrada vira **"A confirmar"**.
-- Todo dado técnico terá, nas próximas iterações, **fonte + data + nível de confiança** (confirmado · bem fundamentado · a confirmar).
-- Dados de demonstração são sempre identificados por `demo: true` nos registros e por um aviso visual na tela.
-- Nenhuma chave de API fica no código do site. As chaves ficam em `.env.local` (local) e no painel da Vercel (produção).
+- Nunca inventar OEMs, especificações, vendas ou aplicações. Informação não encontrada fica como pendência (**"A confirmar"**).
+- Todo dado técnico tem **fonte + data de consulta + nível de confiança** (confirmado · bem fundamentado · não confirmado).
+- Conexão sem fio só é marcada quando a fonte diz "sem fio"; ter CarPlay/Android Auto não basta.
+- Fotos só da versão vendida no Brasil, com crédito; logotipos só os oficiais.
+- Nenhuma chave de API fica no código do site. As chaves ficam em `.env.local` (local), no painel da Vercel e nos segredos do Supabase.
