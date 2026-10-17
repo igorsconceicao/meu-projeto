@@ -70,9 +70,8 @@ export const NAVEGACAO: GrupoNavegacao[] = [
       },
       {
         titulo: "Tendências",
-        descricao: "Opiniões e acessórios",
+        descricao: "Vendas e tecnologia",
         href: "/tendencias",
-        emBreve: true,
         icone: TrendingUp,
       },
     ],

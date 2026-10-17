@@ -56,7 +56,7 @@ const MARCA_FENABRAVE: Record<string, string[]> = {
   CITROEN: ["citroen"],
 };
 
-function slugsMarca(marca: string): string[] {
+export function slugsMarca(marca: string): string[] {
   return MARCA_FENABRAVE[marca] ?? [normalizar(marca).replace(/[^a-z0-9]/g, "")];
 }
 
