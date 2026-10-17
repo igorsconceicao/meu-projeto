@@ -9,6 +9,8 @@ export type Alvo = {
   veiculo?: Veiculo;
   nome: string;
   vendasAno: number | null;
+  /** Preenchido quando as vendas são da família inteira (ex.: "OMODA 5" para o Omoda 5 SHS-H). */
+  vendasFamilia?: string;
   evidencia: string | null;
   fonteUrl: string | null;
 };
@@ -31,13 +33,20 @@ function resumo(s: string | null | undefined, max = 220): string | null {
 /** Vendas acumuladas no ano (último informativo) por id de veículo do catálogo. */
 function vendasPorVeiculo(emplacamentos: Emplacamento[], veiculos: Veiculo[]) {
   const ultimo = emplacamentos.filter((e) => e.tipo === "acumulado").map((e) => e.periodo).sort().at(-1);
-  const mapa = new Map<string, number>();
+  const mapa = new Map<string, { unidades: number; familia?: string }>();
   if (!ultimo) return { mapa, periodo: null as string | null, ranking: [] as ReturnType<typeof ligarAoCatalogo> };
   const ranking = ligarAoCatalogo(
     emplacamentos.filter((e) => e.tipo === "acumulado" && e.periodo === ultimo),
     veiculos,
   );
-  for (const r of ranking) if (r.veiculo) mapa.set(r.veiculo.id, (mapa.get(r.veiculo.id) ?? 0) + r.unidades);
+  for (const r of ranking) {
+    if (!r.veiculo) continue;
+    const atual = mapa.get(r.veiculo.id);
+    mapa.set(r.veiculo.id, {
+      unidades: (atual?.unidades ?? 0) + r.unidades,
+      familia: r.ligacao === "familia" ? `${r.marca}/${r.modelo}` : atual?.familia,
+    });
+  }
   return { mapa, periodo: ultimo, ranking };
 }
 
@@ -47,7 +56,8 @@ export function calcularOportunidades(veiculos: Veiculo[], emplacamentos: Emplac
   const alvo = (v: Veiculo, evidencia: string | null | undefined, fonteUrl: string | null | undefined): Alvo => ({
     veiculo: v,
     nome: `${v.marca} ${v.nomeComercial}`,
-    vendasAno: vendas.get(v.id) ?? null,
+    vendasAno: vendas.get(v.id)?.unidades ?? null,
+    vendasFamilia: vendas.get(v.id)?.familia,
     evidencia: resumo(evidencia),
     fonteUrl: fonteUrl ?? null,
   });
@@ -127,7 +137,7 @@ export function calcularOportunidades(veiculos: Veiculo[], emplacamentos: Emplac
       titulo: "Mais vendidos ainda sem ficha completa",
       porQue:
         "Modelos do ranking de vendas que ainda não estão publicados no catálogo técnico: prioridade de coleta de dados (manual do proprietário, catálogo de peças).",
-      criterio: "Entre os 50 mais emplacados do ano e sem o pacote mínimo de dados (ou ainda não cadastrados).",
+      criterio: "Entre os 50 automóveis e os 50 comerciais leves mais emplacados no ano, sem o pacote mínimo de dados ou ainda não cadastrados.",
       validar: ["Acesso ao site oficial da marca (algumas bloqueiam leitura automática)", "Manual do proprietário em PDF"],
       alvos: ranking
         .filter((r) => !r.veiculo?.completude?.publicavel)

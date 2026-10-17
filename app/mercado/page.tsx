@@ -151,6 +151,11 @@ export default async function PaginaMercado({ searchParams }: { searchParams: Pr
                         ) : (
                           <span className="font-medium">{e.marca}/{e.modelo}</span>
                         )}
+                        {e.ligacao === "familia" ? (
+                          <span className="text-[11px] text-muted-foreground" title="A Fenabrave soma todas as versões do modelo">
+                            → {e.veiculo!.nomeComercial}
+                          </span>
+                        ) : null}
                         {e.veiculo && !publicado ? (
                           <Badge variant="secondary" className="text-[10px]">em verificação</Badge>
                         ) : null}

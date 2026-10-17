@@ -94,7 +94,9 @@ export default async function PaginaOportunidades() {
                     </div>
                     <div className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
                       <span className="tabular-nums">
-                        {a.vendasAno !== null ? `${formatarNumero(a.vendasAno)} emplacados no ano` : "fora do top 50 de vendas"}
+                        {a.vendasAno !== null
+                          ? `${formatarNumero(a.vendasAno)} emplacados no ano${a.vendasFamilia ? ` (família ${a.vendasFamilia}, todas as versões)` : ""}`
+                          : "fora do ranking dos 50 mais vendidos"}
                       </span>
                       {a.fonteUrl ? (
                         <a href={a.fonteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">
