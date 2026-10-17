@@ -5,6 +5,7 @@ import {
   Database,
   Image as ImageIcon,
   PlusCircle,
+  Radar,
   ShieldCheck,
 } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/card";
 import { buscarMontadoras } from "@/lib/dados/montadoras";
 import { buscarVeiculos } from "@/lib/dados/veiculos";
+import { criarClienteSupabaseServidor } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "Administração",
@@ -27,9 +29,11 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function PaginaAdmin() {
-  const [montadoras, veiculos] = await Promise.all([
+  const supabase = await criarClienteSupabaseServidor();
+  const [montadoras, veiculos, { count: novidadesPendentes }] = await Promise.all([
     buscarMontadoras(),
     buscarVeiculos(),
+    supabase.from("monitor_novidades").select("id", { count: "exact", head: true }).eq("status", "pendente"),
   ]);
 
   const veiculosComFoto = veiculos.filter((v) => v.fotoPrincipalUrl).length;
@@ -54,6 +58,14 @@ export default async function PaginaAdmin() {
       href: "/admin/veiculos",
       acao: "Gerenciar",
     },
+    {
+      titulo: "Novidades detectadas",
+      valor: novidadesPendentes ?? 0,
+      descricao: "Mudanças nos sites oficiais das marcas aguardando revisão (verificação toda segunda-feira)",
+      icone: Radar,
+      href: "/admin/novidades",
+      acao: "Revisar",
+    },
   ];
 
   return (
@@ -63,7 +75,7 @@ export default async function PaginaAdmin() {
         descricao="Catálogo armazenado no Supabase. Qualquer alteração aqui aparece no site em segundos."
       />
 
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cartoes.map((c) => (
           <Card key={c.titulo} className="flex flex-col">
             <CardHeader>

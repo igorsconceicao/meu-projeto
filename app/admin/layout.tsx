@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Building2, Car, Gauge, Home, KeyRound, LogOut } from "lucide-react";
+import { Building2, Car, Gauge, Home, KeyRound, LogOut, Radar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { criarClienteSupabaseServidor } from "@/lib/supabase/server";
@@ -12,6 +12,7 @@ const NAV_ADMIN = [
   { href: "/admin", titulo: "Visão geral", icone: Gauge },
   { href: "/admin/montadoras", titulo: "Montadoras", icone: Building2 },
   { href: "/admin/veiculos", titulo: "Veículos", icone: Car },
+  { href: "/admin/novidades", titulo: "Novidades detectadas", icone: Radar },
 ];
 
 export default async function LayoutAdmin({
