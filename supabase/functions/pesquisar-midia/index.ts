@@ -27,6 +27,7 @@ const DOMINIOS_GLOBAIS = [
   "denza.com",
   "stellantis.com",
   "volvocars.com",
+  "group.renault.com", // CDN oficial do Grupo Renault (catálogos e manuais em PDF)
   "nissan-cdn.net",
   "gacmotor.com",
   "gac-motor.com",
