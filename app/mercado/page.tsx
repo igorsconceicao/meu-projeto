@@ -82,7 +82,12 @@ export default async function PaginaMercado({ searchParams }: { searchParams: Pr
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Mercado e vendas"
-        descricao={`Os 50 modelos mais emplacados no Brasil, conforme o informativo oficial da Fenabrave${edicao ? ` (edição ${edicao})` : ""}. Clique num modelo do catálogo para ver a ficha técnica e cruzar vendas com conectividade e faróis.`}
+        descricao={`Os 50 modelos mais emplacados no Brasil, conforme o informativo oficial da Fenabrave${edicao ? ` (edição ${edicao})` : ""}. Clique num modelo para ver CarPlay, Android Auto e palhetas.`}
+        acoes={
+          <Link href="/tendencias" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent">
+            Ver tendências →
+          </Link>
+        }
       />
 
       <div className="flex flex-wrap items-center gap-2">

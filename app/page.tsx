@@ -1,21 +1,7 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  BarChart3,
-  Building2,
-  Car,
-  CheckCircle2,
-  CircleDashed,
-  Lightbulb,
-  MonitorSmartphone,
-  Search,
-  TrendingUp,
-  Wifi,
-} from "lucide-react";
-import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
-import { FotoVeiculo } from "@/components/midia/foto-veiculo";
+import { ArrowRight, BarChart3, Car, Lightbulb, Search, Wifi, Wind } from "lucide-react";
 import { LogoMontadora } from "@/components/midia/logo-montadora";
-import { Badge } from "@/components/ui/badge";
+import { MiniEstado, resumoPalhetas } from "@/components/tecnico/conectividade";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,417 +10,175 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { buscarEmplacamentos } from "@/lib/dados/emplacamentos";
-import { buscarMontadoras } from "@/lib/dados/montadoras";
+import { projecaoSemFio } from "@/lib/classificacao";
+import { buscarEmplacamentos, ligarAoCatalogo } from "@/lib/dados/emplacamentos";
 import { buscarVeiculos } from "@/lib/dados/veiculos";
 import { calcularOportunidades } from "@/lib/oportunidades";
-import { participacaoPorOrigem } from "@/lib/tendencias";
-import { projecaoSemFio as conexao, tipoFarol as farol } from "@/lib/classificacao";
-import { formatarData, formatarNumero } from "@/lib/utils";
+import { formatarNumero } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-const ITENS_MINIMOS = [
-  "Foto real da versão vendida no Brasil",
-  "Página oficial brasileira da montadora (site ou sala de imprensa)",
-  "Motor e câmbio (ou bateria/autonomia nos elétricos)",
-  "Tamanho da tela da central multimídia",
-  "CarPlay e Android Auto confirmados",
-  "Tecnologia dos faróis",
+const ATALHOS = [
+  { rotulo: "CarPlay/Android Auto sem fio", href: "/veiculos?conexao=sem-fio" },
+  { rotulo: "Sem fio não confirmado", href: "/veiculos?conexao=so-cabo" },
+  { rotulo: "Com medida de palheta", href: "/veiculos?palhetas=com" },
+  { rotulo: "Ver por marca", href: "/montadoras" },
 ];
 
-export default async function PaginaDashboard() {
-  const [montadoras, todos, emplacamentos] = await Promise.all([
-    buscarMontadoras(),
-    buscarVeiculos(),
-    buscarEmplacamentos(),
-  ]);
+export default async function PaginaInicio() {
+  const [todos, emplacamentos] = await Promise.all([buscarVeiculos(), buscarEmplacamentos()]);
   const publicados = todos.filter((v) => v.completude?.publicavel);
-  const emVerificacao = todos.length - publicados.length;
-  const total = publicados.length || 1;
+  const comSemFio = publicados.filter((v) => projecaoSemFio(v) !== "nenhuma").length;
+  const comPalheta = publicados.filter((v) => resumoPalhetas(v.tecnicos?.palhetas).dianteira).length;
 
-  const porConexao = {
-    todas: publicados.filter((v) => conexao(v) === "todas").length,
-    algumas: publicados.filter((v) => conexao(v) === "algumas").length,
-    nenhuma: publicados.filter((v) => conexao(v) === "nenhuma").length,
-  };
-  const porFarol = {
-    led: publicados.filter((v) => farol(v) === "led").length,
-    halogeno: publicados.filter((v) => farol(v) === "halogeno").length,
-  };
-  const porPropulsao = Object.entries(
-    publicados.reduce<Record<string, number>>((acc, v) => {
-      acc[v.propulsao] = (acc[v.propulsao] ?? 0) + 1;
-      return acc;
-    }, {}),
-  ).sort((a, b) => b[1] - a[1]);
-  const marcasComModelos = montadoras
-    .filter((m) => (m.qtdModelos ?? 0) > 0)
-    .sort((a, b) => (b.qtdModelos ?? 0) - (a.qtdModelos ?? 0));
-  const maiorMarca = marcasComModelos[0]?.qtdModelos ?? 1;
-  const recentes = [...publicados]
-    .sort((a, b) => (b.criadoEm ?? "").localeCompare(a.criadoEm ?? ""))
-    .slice(0, 6);
-  const ultimaVerificacao = todos
-    .map((v) => v.verificadoBrEm)
-    .filter((d): d is string => !!d)
-    .sort()
-    .at(-1);
-
-  // Mercado: líder de automóveis no último mês e oportunidades abertas.
   const ultimoMes = emplacamentos.filter((e) => e.tipo === "mensal").map((e) => e.periodo).sort().at(-1);
-  const lider = emplacamentos.find(
-    (e) => e.tipo === "mensal" && e.periodo === ultimoMes && e.segmento === "Automóveis" && e.posicao === 1,
-  );
+  const maisVendidos = ultimoMes
+    ? ligarAoCatalogo(
+        emplacamentos.filter((e) => e.tipo === "mensal" && e.periodo === ultimoMes && e.segmento === "Automóveis").slice(0, 10),
+        todos,
+      )
+    : [];
+  const nomeMes = ultimoMes
+    ? new Date(`${ultimoMes}T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+    : "";
   const { oportunidades } = calcularOportunidades(todos, emplacamentos);
-  const origem = participacaoPorOrigem(emplacamentos, montadoras);
-  const ultimaOrigem = origem.linhas.at(-1);
-  const fatiaChina = ultimaOrigem ? Math.round(((ultimaOrigem.porPais.get("China") ?? 0) / (ultimaOrigem.total || 1)) * 100) : null;
-  const nomeMes = (p?: string) =>
-    p ? new Date(`${p}T12:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) : "";
 
-  const indicadores = [
-    {
-      titulo: "Modelos publicados",
-      valor: publicados.length,
-      explicacao: "Carros vendidos no Brasil com o pacote mínimo de dados confirmado em fonte oficial.",
-      href: "/veiculos",
-      acao: "Abrir catálogo",
-      icone: Car,
-    },
-    {
-      titulo: "Montadoras",
-      valor: montadoras.length,
-      explicacao: `Marcas com carros à venda no Brasil (${marcasComModelos.length} já com modelos publicados).`,
-      href: "/montadoras",
-      acao: "Ver marcas",
-      icone: Building2,
-    },
-    {
-      titulo: "Com CarPlay/Android Auto sem fio",
-      valor: porConexao.todas + porConexao.algumas,
-      explicacao: "Modelos publicados com projeção sem fio em todas ou em algumas versões.",
-      href: "/veiculos?conexao=sem-fio",
-      acao: "Filtrar esses modelos",
-      icone: Wifi,
-    },
-    {
-      titulo: "Em verificação",
-      valor: emVerificacao,
-      explicacao: "Já cadastrados, mas ainda falta confirmar algum dado obrigatório. Entram sozinhos quando completarem.",
-      href: "/admin/veiculos",
-      acao: "Ver o que falta (admin)",
-      icone: CircleDashed,
-    },
+  const numeros = [
+    { titulo: "Modelos no site", valor: publicados.length, href: "/veiculos", icone: Car },
+    { titulo: "Com CarPlay/Android Auto sem fio", valor: comSemFio, href: "/veiculos?conexao=sem-fio", icone: Wifi },
+    { titulo: "Com medida de palheta", valor: comPalheta, href: "/veiculos?palhetas=com", icone: Wind },
   ];
 
   return (
-    <div className="flex flex-col gap-8">
-      <CabecalhoPagina
-        titulo="Painel do catálogo"
-        descricao="Visão geral dos carros vendidos no Brasil que já estão no catálogo técnico: quantos são, como está a conectividade da central multimídia, o tipo de farol e quais marcas estão mais completas. Clique em qualquer bloco para ver os modelos."
-        acoes={
-          <>
-            <Button variant="outline" asChild>
-              <Link href="/busca">
-                <Search className="h-4 w-4" />
-                Buscar
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/veiculos">
-                <Car className="h-4 w-4" />
-                Explorar veículos
-              </Link>
-            </Button>
-          </>
-        }
-      />
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+      <section className="rounded-2xl border bg-card p-6 md:p-8">
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Qual veículo você quer consultar?</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          CarPlay e Android Auto (cabo e sem fio), tela da central e palhetas de cada modelo vendido no Brasil.
+        </p>
+        <form action="/veiculos" className="mt-5 flex gap-2">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              name="q"
+              placeholder="Ex.: Onix, Kicks, Tera, Haval H6"
+              className="h-12 w-full rounded-lg border border-input bg-background pl-11 pr-3 text-base shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Modelo do veículo"
+            />
+          </div>
+          <Button type="submit" size="lg" className="h-12">
+            Buscar
+          </Button>
+        </form>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {ATALHOS.map((a) => (
+            <Link key={a.href} href={a.href} className="rounded-full border px-3 py-1 text-sm hover:border-primary/60 hover:bg-accent">
+              {a.rotulo}
+            </Link>
+          ))}
+        </div>
+      </section>
 
-      {/* KPI row: cada bloco leva à lista correspondente */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {indicadores.map(({ titulo, valor, explicacao, href, acao, icone: Icone }) => (
-          <Link
-            key={titulo}
-            href={href}
-            className="group flex flex-col rounded-xl border bg-card p-5 transition-colors hover:border-primary/50"
-          >
+      <section className="grid gap-3 sm:grid-cols-3">
+        {numeros.map(({ titulo, valor, href, icone: Icone }) => (
+          <Link key={titulo} href={href} className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/50">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>{titulo}</span>
               <Icone className="h-4 w-4" />
             </div>
             <p className="mt-2 text-4xl font-semibold tabular-nums">{formatarNumero(valor)}</p>
-            <p className="mt-2 flex-1 text-xs leading-relaxed text-muted-foreground">{explicacao}</p>
-            <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
-              {acao}
-              <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+            <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary">
+              Ver lista <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
             </span>
           </Link>
         ))}
       </section>
 
-      {lider ? (
-        <section className="grid gap-4 md:grid-cols-3">
-          <Link href="/mercado" className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/50">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Carro mais emplacado em {nomeMes(ultimoMes)}</span>
-              <BarChart3 className="h-4 w-4" />
-            </div>
-            <p className="mt-2 truncate text-2xl font-semibold">{lider.marca}/{lider.modelo}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{formatarNumero(lider.unidades)} unidades · ranking oficial Fenabrave</p>
-            <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
-              Ver os 50 mais vendidos <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </Link>
-          <Link href="/oportunidades" className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/50">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Oportunidades para o laboratório</span>
-              <Lightbulb className="h-4 w-4" />
-            </div>
-            <ul className="mt-2 space-y-0.5 text-sm">
-              {oportunidades.slice(0, 3).map((o) => (
-                <li key={o.chave} className="flex justify-between gap-2">
-                  <span className="truncate">{o.titulo}</span>
-                  <span className="shrink-0 font-medium tabular-nums">{o.alvos.length}</span>
-                </li>
-              ))}
-            </ul>
-            <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
-              Ver modelos e evidências <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </Link>
-          <Link href="/tendencias" className="group rounded-xl border bg-card p-5 transition-colors hover:border-primary/50">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Marcas chinesas no top 50</span>
-              <TrendingUp className="h-4 w-4" />
-            </div>
-            <p className="mt-2 text-2xl font-semibold tabular-nums">{fatiaChina !== null ? `${fatiaChina}%` : "—"}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Das unidades dos 50 mais emplacados (automóveis + comerciais) em {nomeMes(ultimoMes)}
-            </p>
-            <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
-              Ver tendências <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-            </span>
-          </Link>
-        </section>
-      ) : null}
-
-      <section className="grid gap-4 lg:grid-cols-3">
+      {maisVendidos.length ? (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <MonitorSmartphone className="h-4 w-4 text-muted-foreground" />
-              CarPlay e Android Auto
-            </CardTitle>
-            <CardDescription>
-              Como o celular se conecta à central nos {publicados.length} modelos publicados.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <Medidor rotulo="Sem fio em todas as versões" valor={porConexao.todas} total={total} href="/veiculos?conexao=sem-fio" />
-            <Medidor rotulo="Sem fio só em algumas versões" valor={porConexao.algumas} total={total} href="/veiculos?conexao=sem-fio" />
-            <Medidor
-              rotulo="Sem projeção sem fio confirmada"
-              valor={porConexao.nenhuma}
-              total={total}
-              href="/veiculos?conexao=so-cabo"
-              ajuda="A fonte não fala em sem fio (pode ser só por cabo)"
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Lightbulb className="h-4 w-4 text-muted-foreground" />
-              Faróis
-            </CardTitle>
-            <CardDescription>Tecnologia do farol principal informada pela montadora.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            <Medidor rotulo="LED em pelo menos uma versão" valor={porFarol.led} total={total} href="/veiculos?farol=led" />
-            <Medidor
-              rotulo="Só halógeno"
-              valor={porFarol.halogeno}
-              total={total}
-              href="/veiculos?farol=halogeno"
-              ajuda="Possível público para kits de iluminação"
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Por tipo de motorização</CardTitle>
-            <CardDescription>Modelos publicados por propulsão.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {porPropulsao.map(([p, n]) => (
-              <Medidor key={p} rotulo={p} valor={n} total={total} href={`/veiculos?propulsao=${encodeURIComponent(p)}`} />
-            ))}
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-5">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Modelos publicados por marca</CardTitle>
-            <CardDescription>Clique numa marca para ver os modelos e o que falta nas que estão em verificação.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {marcasComModelos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma marca com modelos publicados ainda.</p>
-            ) : (
-              marcasComModelos.map((m) => (
-                <Link
-                  key={m.id}
-                  href={`/montadoras/${m.slug}`}
-                  title={`${m.nome}: ${m.qtdModelos} publicados, ${m.qtdEmVerificacao ?? 0} em verificação`}
-                  className="flex items-center gap-3 rounded-md px-2 py-1.5 hover:bg-accent"
-                >
-                  <LogoMontadora nome={m.nome} slug={m.slug} logotipoUrl={m.logotipoUrl} tamanho="sm" />
-                  <span className="w-24 shrink-0 truncate text-sm">{m.nome}</span>
-                  <span className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                    <span
-                      className="block h-full rounded-full bg-primary"
-                      style={{ width: `${((m.qtdModelos ?? 0) / maiorMarca) * 100}%` }}
-                    />
-                  </span>
-                  <span className="w-6 text-right text-sm font-medium tabular-nums">{m.qtdModelos}</span>
-                </Link>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-3">
           <CardHeader className="flex-row items-start justify-between space-y-0">
             <div>
-              <CardTitle className="text-base">Adicionados recentemente</CardTitle>
-              <CardDescription>Últimos modelos que completaram o pacote mínimo.</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                Carros mais vendidos em {nomeMes}
+              </CardTitle>
+              <CardDescription>Ranking oficial da Fenabrave, com o CarPlay/Android Auto sem fio de cada um.</CardDescription>
             </div>
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/veiculos">
-                Ver todos <ArrowRight className="h-4 w-4" />
+              <Link href="/mercado">
+                Top 50 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
           </CardHeader>
-          <CardContent>
-            {recentes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum modelo publicado ainda.</p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {recentes.map((v) => (
-                  <Link
-                    key={v.id}
-                    href={`/veiculos/${v.slug}`}
-                    className="group block overflow-hidden rounded-lg border bg-card transition-colors hover:border-primary/40"
-                  >
-                    <FotoVeiculo
-                      nome={`${v.marca} ${v.nomeComercial}`}
-                      categoria={v.categoria}
-                      propulsao={v.propulsao}
-                      fotoUrl={v.fotoPrincipalUrl}
-                      montadoraSlug={v.montadoraSlug}
-                      proporcao="16/9"
-                      className="rounded-none ring-0"
-                      mostrarAviso={false}
-                    />
-                    <div className="p-2.5">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{v.marca}</p>
-                      <p className="truncate text-sm font-semibold group-hover:text-primary">{v.nomeComercial}</p>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        <Badge variant="secondary" className="text-[10px]">{v.categoria}</Badge>
-                        <Badge variant="secondary" className="text-[10px]">{v.propulsao}</Badge>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+          <CardContent className="p-0">
+            <ul className="divide-y">
+              {maisVendidos.map((e) => {
+                const v = e.veiculo;
+                const publicado = v?.completude?.publicavel;
+                const semFio = publicado ? projecaoSemFio(v!) : null;
+                const conteudo = (
+                  <>
+                    <span className="w-6 text-right text-sm tabular-nums text-muted-foreground">{e.posicao}º</span>
+                    {v ? (
+                      <LogoMontadora nome={v.marca} slug={v.montadoraSlug} logotipoUrl={v.montadora?.logotipoUrl ?? null} tamanho="sm" />
+                    ) : (
+                      <span className="w-8" />
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{e.marca}/{e.modelo}</span>
+                      <span className="text-xs text-muted-foreground">{formatarNumero(e.unidades)} unidades</span>
+                    </span>
+                    <span className="shrink-0 text-right">
+                      {semFio === null ? (
+                        <span className="text-xs text-muted-foreground">{v ? "aguardando dados" : "fora do catálogo"}</span>
+                      ) : (
+                        <span className="flex flex-col items-end gap-0.5">
+                          <span className="text-[11px] text-muted-foreground">sem fio</span>
+                          <MiniEstado estado={semFio === "todas" ? "confirmado" : semFio === "algumas" ? "depende_versao" : "nao_identificado"} />
+                        </span>
+                      )}
+                    </span>
+                  </>
+                );
+                return (
+                  <li key={e.posicao}>
+                    {publicado ? (
+                      <Link href={`/veiculos/${v!.slug}`} className="flex items-center gap-3 px-6 py-3 hover:bg-accent">
+                        {conteudo}
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-3 px-6 py-3">{conteudo}</div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </CardContent>
         </Card>
+      ) : null}
+
+      <section className="grid gap-3 sm:grid-cols-2">
+        <Link href="/oportunidades" className="group rounded-xl border bg-card p-5 hover:border-primary/50">
+          <p className="flex items-center gap-2 font-medium">
+            <Lightbulb className="h-4 w-4 text-highlight" /> Oportunidades para o laboratório
+          </p>
+          <ul className="mt-2 space-y-0.5 text-sm text-muted-foreground">
+            {oportunidades.slice(0, 3).map((o) => (
+              <li key={o.chave} className="flex justify-between gap-2">
+                <span className="truncate">{o.titulo}</span>
+                <span className="shrink-0 font-medium tabular-nums text-foreground">{o.alvos.length}</span>
+              </li>
+            ))}
+          </ul>
+        </Link>
+        <div className="rounded-xl border bg-card p-5 text-sm">
+          <p className="font-medium">Como os dados são coletados</p>
+          <p className="mt-2 text-muted-foreground">
+            Cada informação guarda o link e o trecho da fonte. Na ficha, a etiqueta mostra o tipo de fonte: fonte oficial, imprensa/catálogo
+            ou internet (a conferir). A busca por novos modelos e dados roda automaticamente duas vezes por mês.
+          </p>
+        </div>
       </section>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Como um modelo entra no catálogo</CardTitle>
-          <CardDescription>
-            Os dados vêm dos sites oficiais brasileiros das montadoras e das salas de imprensa. Cada informação guarda a página de origem, a data da consulta e o trecho copiado da fonte.
-            {ultimaVerificacao ? ` Última verificação: ${formatarData(ultimaVerificacao)}.` : ""}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-2">
-          <div>
-            <p className="mb-2 text-sm font-medium">Obrigatório para publicar</p>
-            <ul className="space-y-1.5 text-sm">
-              {ITENS_MINIMOS.map((i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                  <span>{i}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className="mb-2 text-sm font-medium">Registrado como pendência (sem bloquear)</p>
-            <ul className="space-y-1.5 text-sm text-muted-foreground">
-              {[
-                "CarPlay/Android Auto: separação entre cabo e sem fio",
-                "Códigos das lâmpadas (H4, H7, HB3...)",
-                "Palhetas: medidas e encaixe",
-                "Interruptores dos vidros",
-                "Códigos OEM",
-              ].map((i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <CircleDashed className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
-                  <span>{i}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Nada é preenchido por suposição: o que a fonte não informa aparece como “a confirmar”.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
-  );
-}
-
-/** Linha clicável com rótulo, contagem e barra de proporção (uma só cor). */
-function Medidor({
-  rotulo,
-  valor,
-  total,
-  href,
-  ajuda,
-}: {
-  rotulo: string;
-  valor: number;
-  total: number;
-  href: string;
-  ajuda?: string;
-}) {
-  const pct = Math.round((valor / total) * 100);
-  return (
-    <Link
-      href={href}
-      title={`${rotulo}: ${valor} modelos (${pct}%)`}
-      className="block rounded-md px-2 py-1.5 hover:bg-accent"
-    >
-      <div className="flex items-baseline justify-between gap-2 text-sm">
-        <span>{rotulo}</span>
-        <span className="tabular-nums">
-          <span className="font-medium">{valor}</span>
-          <span className="ml-1 text-xs text-muted-foreground">{pct}%</span>
-        </span>
-      </div>
-      <span className="mt-1 block h-2 overflow-hidden rounded-full bg-muted">
-        <span className="block h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-      </span>
-      {ajuda ? <span className="mt-0.5 block text-[11px] text-muted-foreground">{ajuda}</span> : null}
-    </Link>
   );
 }

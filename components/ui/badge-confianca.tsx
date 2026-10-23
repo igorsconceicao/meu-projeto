@@ -11,17 +11,17 @@ const CONFIG: Record<
   { label: string; variant: "success" | "warning" | "secondary"; Icon: typeof CheckCircle2 }
 > = {
   confirmado: {
-    label: "Confirmado",
+    label: "Fonte oficial",
     variant: "success",
     Icon: CheckCircle2,
   },
   bem_fundamentado: {
-    label: "Bem fundamentado",
+    label: "Imprensa / catálogo",
     variant: "warning",
     Icon: ShieldQuestion,
   },
   nao_confirmado: {
-    label: "A confirmar",
+    label: "Internet — conferir",
     variant: "secondary",
     Icon: HelpCircle,
   },

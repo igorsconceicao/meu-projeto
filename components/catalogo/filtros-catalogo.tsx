@@ -15,11 +15,9 @@ const CLASSE_SELECT =
 export function FiltrosCatalogo({
   marcas,
   categorias,
-  propulsoes,
 }: {
   marcas: Opcao[];
   categorias: string[];
-  propulsoes: string[];
 }) {
   const router = useRouter();
   const caminho = usePathname();
@@ -43,7 +41,7 @@ export function FiltrosCatalogo({
     return () => clearTimeout(t);
   }, [texto, params, aplicar]);
 
-  const temFiltro = ["q", "marca", "categoria", "propulsao", "conexao", "farol"].some((k) => params.get(k));
+  const temFiltro = ["q", "marca", "categoria", "propulsao", "conexao", "farol", "palhetas"].some((k) => params.get(k));
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border bg-card p-3 lg:flex-row lg:items-center">
@@ -52,7 +50,7 @@ export function FiltrosCatalogo({
         <Input
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          placeholder="Filtrar por modelo, motor, multimídia..."
+          placeholder="Digite o modelo (ex.: Onix, Kicks, Tera)"
           className="pl-9"
           aria-label="Filtrar veículos"
         />
@@ -86,36 +84,23 @@ export function FiltrosCatalogo({
         </select>
         <select
           className={CLASSE_SELECT}
-          value={params.get("propulsao") ?? ""}
-          onChange={(e) => aplicar("propulsao", e.target.value)}
-          aria-label="Propulsão"
-        >
-          <option value="">Toda propulsão</option>
-          {propulsoes.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-        <select
-          className={CLASSE_SELECT}
           value={params.get("conexao") ?? ""}
           onChange={(e) => aplicar("conexao", e.target.value)}
           aria-label="Conectividade"
         >
-          <option value="">Qualquer conectividade</option>
-          <option value="sem-fio">CarPlay/Android Auto sem fio</option>
-          <option value="so-cabo">Sem projeção sem fio confirmada</option>
+          <option value="">CarPlay / Android Auto</option>
+          <option value="sem-fio">Com sem fio</option>
+          <option value="so-cabo">Sem fio não confirmado</option>
         </select>
         <select
           className={CLASSE_SELECT}
-          value={params.get("farol") ?? ""}
-          onChange={(e) => aplicar("farol", e.target.value)}
-          aria-label="Faróis"
+          value={params.get("palhetas") ?? ""}
+          onChange={(e) => aplicar("palhetas", e.target.value)}
+          aria-label="Palhetas"
         >
-          <option value="">Qualquer farol</option>
-          <option value="led">Farol LED</option>
-          <option value="halogeno">Farol halógeno</option>
+          <option value="">Palhetas</option>
+          <option value="com">Com medida</option>
+          <option value="sem">Sem medida ainda</option>
         </select>
       </div>
       {temFiltro ? (

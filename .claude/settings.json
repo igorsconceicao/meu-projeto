@@ -12,7 +12,16 @@
       "mcp__Supabase",
       "mcp__Vercel",
       "mcp__github",
-      "mcp__claude-code-remote"
+      "mcp__claude-code-remote",
+      "Agent",
+      "SendMessage",
+      "ListAgents",
+      "TaskCreate",
+      "TaskUpdate",
+      "TaskGet",
+      "TaskList",
+      "ToolSearch",
+      "Skill"
     ],
     "deny": [
       "Bash(git push --force *)",

@@ -6,7 +6,7 @@ import { Gauge } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAVEGACAO } from "./navegacao";
 
-export function Sidebar({ className }: { className?: string }) {
+export function Sidebar({ className, aoNavegar }: { className?: string; aoNavegar?: () => void }) {
   const caminho = usePathname();
 
   return (
@@ -16,7 +16,7 @@ export function Sidebar({ className }: { className?: string }) {
         className,
       )}
     >
-      <div className="flex h-16 items-center gap-2 border-b px-5">
+      <Link href="/" onClick={aoNavegar} className="flex h-16 items-center gap-2 border-b px-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Gauge className="h-5 w-5" />
         </div>
@@ -26,7 +26,7 @@ export function Sidebar({ className }: { className?: string }) {
             Automotiva · BR
           </span>
         </div>
-      </div>
+      </Link>
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         {NAVEGACAO.map((grupo) => (
           <div key={grupo.titulo} className="mb-6">
@@ -38,11 +38,13 @@ export function Sidebar({ className }: { className?: string }) {
                 const ativo =
                   item.href === "/"
                     ? caminho === "/"
-                    : caminho.startsWith(item.href);
+                    : [item.href, ...(item.tambem ?? [])].some((h) => caminho.startsWith(h));
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      onClick={aoNavegar}
+                      aria-current={ativo ? "page" : undefined}
                       className={cn(
                         "flex items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors",
                         ativo
@@ -73,8 +75,8 @@ export function Sidebar({ className }: { className?: string }) {
         ))}
       </nav>
       <div className="border-t px-4 py-3 text-xs text-muted-foreground">
-        <p className="font-medium text-foreground">Catálogo com fontes oficiais</p>
-        <p>Só dados confirmados em sites brasileiros das montadoras</p>
+        <p className="font-medium text-foreground">Cada dado com fonte e data</p>
+        <p>Atualização automática duas vezes por mês</p>
       </div>
     </aside>
   );

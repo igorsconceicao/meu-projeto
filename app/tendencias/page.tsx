@@ -78,6 +78,11 @@ export default async function PaginaTendencias() {
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Tendências do mercado"
+        acoes={
+          <Link href="/mercado" className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-accent">
+            ← Ranking de vendas
+          </Link>
+        }
         descricao={`Movimentos calculados com o ranking oficial da Fenabrave (${mes(origem.meses[0])} a ${mes(origem.meses.at(-1) ?? null)}) e com as fichas técnicas publicadas no catálogo. As somas consideram os 50 modelos mais emplacados de automóveis e de comerciais leves de cada mês — não o mercado total.`}
       />
 
