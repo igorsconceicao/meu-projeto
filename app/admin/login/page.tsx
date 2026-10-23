@@ -130,16 +130,6 @@ export default function PaginaLogin() {
             </Button>
           </form>
 
-          <div className="rounded-md border border-dashed border-highlight/40 bg-highlight/5 p-3 text-xs text-muted-foreground">
-            <p className="font-semibold text-foreground">Primeiro acesso</p>
-            <p className="mt-1">
-              Usuário: <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">Igor</code> ·
-              Senha: <code className="rounded bg-muted px-1 py-0.5 font-mono text-foreground">Igor1234</code>
-            </p>
-            <p className="mt-1">
-              Troque a senha depois de entrar, no botão <strong>Trocar senha</strong> do cabeçalho.
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>

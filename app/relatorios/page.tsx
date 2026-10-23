@@ -162,7 +162,7 @@ export default async function PaginaRelatorios() {
       </section>
 
       <p className="text-xs text-muted-foreground">
-        Verde: modelo publicado (clique para abrir a ficha). Cinza: cadastrado, aguardando algum dado obrigatório em fonte oficial.
+        Verde: modelo publicado (clique para abrir a ficha). Cinza: cadastrado, aguardando a informação de CarPlay/Android Auto.
       </p>
     </div>
   );

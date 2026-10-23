@@ -137,7 +137,7 @@ export function calcularOportunidades(veiculos: Veiculo[], emplacamentos: Emplac
       titulo: "Mais vendidos ainda sem ficha completa",
       porQue:
         "Modelos do ranking de vendas que ainda não estão publicados no catálogo técnico: prioridade de coleta de dados (manual do proprietário, catálogo de peças).",
-      criterio: "Entre os 50 automóveis e os 50 comerciais leves mais emplacados no ano, sem o pacote mínimo de dados ou ainda não cadastrados.",
+      criterio: "Entre os 50 automóveis e os 50 comerciais leves mais emplacados no ano, ainda fora da lista (sem CarPlay/Android Auto identificado) ou não cadastrados.",
       validar: ["Acesso ao site oficial da marca (algumas bloqueiam leitura automática)", "Manual do proprietário em PDF"],
       alvos: ranking
         .filter((r) => !r.veiculo?.completude?.publicavel)

@@ -27,7 +27,7 @@ export default async function PaginaBusca({
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Busca no catálogo"
-        descricao="Procure por marca, modelo, categoria, motor, câmbio, central multimídia (ex.: “CarPlay sem fio”), tipo de farol ou código de lâmpada/OEM. Só aparecem modelos publicados, com dados confirmados em fonte oficial."
+        descricao="Procure por marca, modelo, central multimídia (ex.: “CarPlay sem fio”), tipo de farol ou código de lâmpada/OEM."
       />
 
       <form action="/busca" className="flex flex-col gap-2 sm:flex-row">
@@ -52,7 +52,7 @@ export default async function PaginaBusca({
           {total === 0 ? "Nenhum resultado" : `${total} resultado${total === 1 ? "" : "s"}`} para{" "}
           <span className="font-medium text-foreground">“{q}”</span>
           {r.emVerificacao > 0
-            ? ` · mais ${r.emVerificacao} modelo${r.emVerificacao === 1 ? "" : "s"} em verificação (ainda sem o pacote mínimo de dados)`
+            ? ` · mais ${r.emVerificacao} modelo${r.emVerificacao === 1 ? "" : "s"} aguardando a informação de CarPlay/Android Auto`
             : ""}
         </p>
       ) : null}

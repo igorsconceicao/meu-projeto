@@ -26,7 +26,7 @@ export default async function PaginaAdminVeiculos() {
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Veículos"
-        descricao={`${veiculos.length} modelos cadastrados · ${publicados} publicados no site · ${veiculos.length - publicados} em verificação. Um modelo só aparece no site quando todos os itens obrigatórios estão confirmados com fonte oficial.`}
+        descricao={`${veiculos.length} modelos cadastrados · ${publicados} publicados no site · ${veiculos.length - publicados} em verificação. Um modelo aparece no site assim que CarPlay e Android Auto estão identificados (com fonte).`}
         acoes={
           <Button asChild>
             <Link href="/admin/veiculos/novo">

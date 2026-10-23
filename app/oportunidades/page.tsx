@@ -28,7 +28,7 @@ export default async function PaginaOportunidades() {
     <div className="flex flex-col gap-6">
       <CabecalhoPagina
         titulo="Oportunidades de inovação"
-        descricao={`Produtos que a importadora pode desenvolver ou trazer, calculados cruzando o catálogo técnico (dados com fonte oficial) com o ranking de emplacamentos da Fenabrave${mesVendas ? ` (acumulado até ${mesVendas})` : ""}. Cada lista mostra o critério usado e a evidência de cada modelo — nada é estimado.`}
+        descricao={`Produtos que a importadora pode desenvolver ou trazer, calculados cruzando o catálogo técnico (cada dado com fonte) com o ranking de emplacamentos da Fenabrave${mesVendas ? ` (acumulado até ${mesVendas})` : ""}. Cada lista mostra o critério usado e a evidência de cada modelo — nada é estimado.`}
       />
 
       <nav className="flex flex-wrap gap-2">

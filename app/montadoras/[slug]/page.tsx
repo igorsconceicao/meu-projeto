@@ -66,7 +66,7 @@ export default async function PaginaMontadora({ params }: { params: Promise<{ sl
       </section>
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Indicador titulo="Modelos publicados" valor={publicados.length} ajuda="Com o pacote mínimo de dados confirmado" />
+        <Indicador titulo="Modelos publicados" valor={publicados.length} ajuda="Com CarPlay e Android Auto identificados" />
         <Indicador titulo="Em verificação" valor={emVerificacao.length} ajuda="Cadastrados, aguardando dados obrigatórios" />
         <Indicador titulo="CarPlay/AA sem fio" valor={semFio} ajuda="Publicados com projeção sem fio (todas ou algumas versões)" />
         <Indicador titulo="Faróis em LED" valor={farolLed} ajuda="Publicados com farol principal LED em pelo menos uma versão" />
@@ -104,7 +104,7 @@ export default async function PaginaMontadora({ params }: { params: Promise<{ sl
           </div>
         ) : (
           <p className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-            Nenhum modelo desta marca tem ainda o pacote mínimo de dados confirmado em fonte oficial.
+            Nenhum modelo desta marca tem ainda CarPlay e Android Auto identificados.
           </p>
         )}
       </section>
@@ -114,7 +114,7 @@ export default async function PaginaMontadora({ params }: { params: Promise<{ sl
           <CardHeader>
             <CardTitle className="text-base">Em verificação</CardTitle>
             <CardDescription>
-              Modelos vendidos no Brasil que ainda não aparecem no catálogo porque falta confirmar algum dado obrigatório em fonte oficial.
+              Modelos vendidos no Brasil que ainda não aparecem na lista porque falta a informação de CarPlay/Android Auto.
             </CardDescription>
           </CardHeader>
           <CardContent>

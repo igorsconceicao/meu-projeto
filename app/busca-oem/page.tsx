@@ -87,7 +87,7 @@ export default async function PaginaBuscaOem({
         <CardHeader>
           <CardTitle className="text-base">Cobertura da base de códigos</CardTitle>
           <CardDescription>
-            Códigos só entram quando publicados em fonte oficial (manual do proprietário, catálogo de peças da montadora).
+            Códigos entram com a fonte indicada (manual do proprietário, catálogo da montadora ou de fabricantes de peças).
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
