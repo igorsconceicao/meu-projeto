@@ -64,7 +64,7 @@ export const CAMPOS_TECNICOS: Record<TabelaTecnica, CampoTecnico[]> = {
     { nome: "versoes", rotulo: "Versões", tipo: "texto", dica: "Em quais versões vale" },
   ],
   palhetas: [
-    { nome: "posicao", rotulo: "Posição", tipo: "texto", obrigatorio: true, dica: "Motorista, passageiro, traseira" },
+    { nome: "posicao", rotulo: "Posição", tipo: "texto", obrigatorio: true, dica: "Dianteira (motorista), Dianteira (passageiro) ou Traseira" },
     { nome: "medida_mm", rotulo: "Medida (mm)", tipo: "numero" },
     { nome: "medida_pol", rotulo: "Medida (polegadas)", tipo: "numero" },
     { nome: "encaixe", rotulo: "Encaixe", tipo: "texto", dica: "Gancho U, pino lateral, push button…" },
