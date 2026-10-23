@@ -1,17 +1,8 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
 import { LogoMontadora } from "@/components/midia/logo-montadora";
 import { FiltrosCatalogo } from "@/components/catalogo/filtros-catalogo";
 import { projecoes, ResumoProjecao, resumoPalhetas } from "@/components/tecnico/conectividade";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { normalizar } from "@/lib/busca";
 import { projecaoSemFio, tipoFarol } from "@/lib/classificacao";
 import { buscarVeiculos } from "@/lib/dados/veiculos";
@@ -97,99 +88,55 @@ export default async function PaginaVeiculos({
           Nenhum modelo com esses filtros.
         </div>
       ) : (
-        <>
-          {/* Computador: tabela */}
-          <div className="hidden overflow-hidden rounded-lg border bg-card md:block">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Modelo</TableHead>
-                  <TableHead>Tela</TableHead>
-                  <TableHead className="w-36">Apple CarPlay</TableHead>
-                  <TableHead className="w-36">Android Auto</TableHead>
-                  <TableHead>Palheta dianteira</TableHead>
-                  <TableHead>Palheta traseira</TableHead>
-                  <TableHead className="w-8" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {veiculos.map((v) => {
-                  const p = projecoes(v.tecnicos?.multimidia);
-                  const pal = resumoPalhetas(v.tecnicos?.palhetas);
-                  return (
-                    <TableRow key={v.id} className="group relative cursor-pointer">
-                      <TableCell>
-                        <Link href={`/veiculos/${v.slug}`} className="flex items-center gap-3 after:absolute after:inset-0">
-                          <LogoMontadora nome={v.marca} slug={v.montadoraSlug} logotipoUrl={v.montadora?.logotipoUrl ?? null} tamanho="sm" />
-                          <span className="min-w-0">
-                            <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">{v.marca}</span>
-                            <span className="block font-medium group-hover:text-primary">{v.nomeComercial}</span>
-                          </span>
-                        </Link>
-                      </TableCell>
-                      <TableCell className="max-w-[160px] text-sm">
-                        <span className="line-clamp-2">{v.tecnicos?.multimidia?.telaPolegadas ?? <Vazio />}</span>
-                      </TableCell>
-                      <TableCell><ResumoProjecao {...p.carplay} /></TableCell>
-                      <TableCell><ResumoProjecao {...p.androidAuto} /></TableCell>
-                      <TableCell className="text-sm">{pal.dianteira ?? <Vazio />}</TableCell>
-                      <TableCell className="text-sm">{pal.traseira ?? <Vazio />}</TableCell>
-                      <TableCell><ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary" /></TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+        <div className="overflow-hidden rounded-lg border bg-card">
+          <div className="hidden grid-cols-[2fr_1fr_1.3fr_1.3fr_1fr_1fr] gap-3 border-b bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground md:grid">
+            <span>Modelo</span>
+            <span>Tela</span>
+            <span>Apple CarPlay</span>
+            <span>Android Auto</span>
+            <span>Palheta dianteira</span>
+            <span>Palheta traseira</span>
           </div>
-
-          {/* Celular: cartões compactos */}
-          <ul className="space-y-3 md:hidden">
+          <ul className="divide-y">
             {veiculos.map((v) => {
               const p = projecoes(v.tecnicos?.multimidia);
               const pal = resumoPalhetas(v.tecnicos?.palhetas);
               return (
                 <li key={v.id}>
-                  <Link href={`/veiculos/${v.slug}`} className="block rounded-lg border bg-card p-4 active:bg-accent">
-                    <div className="flex items-center gap-3">
+                  <Link
+                    href={`/veiculos/${v.slug}`}
+                    className="grid grid-cols-2 gap-x-3 gap-y-3 px-4 py-3 hover:bg-accent md:grid-cols-[2fr_1fr_1.3fr_1.3fr_1fr_1fr] md:items-center"
+                  >
+                    <span className="col-span-2 flex items-center gap-3 md:col-span-1">
                       <LogoMontadora nome={v.marca} slug={v.montadoraSlug} logotipoUrl={v.montadora?.logotipoUrl ?? null} tamanho="sm" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{v.marca}</p>
-                        <p className="font-medium">{v.nomeComercial}</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="mb-1 text-xs font-medium">CarPlay</p>
-                        <ResumoProjecao {...p.carplay} />
-                      </div>
-                      <div>
-                        <p className="mb-1 text-xs font-medium">Android Auto</p>
-                        <ResumoProjecao {...p.androidAuto} />
-                      </div>
-                    </div>
-                    <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                      <div>
-                        <dt className="text-muted-foreground">Tela</dt>
-                        <dd className="line-clamp-2">{v.tecnicos?.multimidia?.telaPolegadas ?? "—"}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-muted-foreground">Palheta diant.</dt>
-                        <dd>{pal.dianteira ?? "—"}</dd>
-                      </div>
-                      <div>
-                        <dt className="text-muted-foreground">Palheta tras.</dt>
-                        <dd>{pal.traseira ?? "—"}</dd>
-                      </div>
-                    </dl>
+                      <span className="min-w-0">
+                        <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">{v.marca}</span>
+                        <span className="block font-medium">{v.nomeComercial}</span>
+                      </span>
+                    </span>
+                    <Celula rotulo="Tela">{v.tecnicos?.multimidia?.telaPolegadas ?? <Vazio />}</Celula>
+                    <Celula rotulo="CarPlay"><ResumoProjecao {...p.carplay} /></Celula>
+                    <Celula rotulo="Android Auto"><ResumoProjecao {...p.androidAuto} /></Celula>
+                    <Celula rotulo="Palheta dianteira">{pal.dianteira ?? <Vazio />}</Celula>
+                    <Celula rotulo="Palheta traseira">{pal.traseira ?? <Vazio />}</Celula>
                   </Link>
                 </li>
               );
             })}
           </ul>
-        </>
+        </div>
       )}
     </div>
+  );
+}
+
+/** Célula da lista: no celular mostra o rótulo em cima; no computador o cabeçalho faz esse papel. */
+function Celula({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+  return (
+    <span className="min-w-0 text-sm">
+      <span className="block text-[11px] text-muted-foreground md:hidden">{rotulo}</span>
+      <span className={typeof children === "string" ? "line-clamp-2" : undefined}>{children}</span>
+    </span>
   );
 }
 

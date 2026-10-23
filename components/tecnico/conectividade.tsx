@@ -9,12 +9,15 @@ const ESTILO: Record<EstadoConectividade, { rotulo: string; classe: string; Icon
   nao_identificado: { rotulo: "Sem info", classe: "bg-muted/60 text-muted-foreground", Icone: CircleHelp },
 };
 
-/** Etiqueta curta de um estado de conectividade (Sim / Não / Algumas versões / Sem info). */
-export function MiniEstado({ estado, className }: { estado: EstadoConectividade; className?: string }) {
+/**
+ * Etiqueta curta de um estado de conectividade (Sim / Não / Algumas versões / Sem info).
+ * `leve` troca o ícone por um ponto — usado nas listas longas para a página ficar leve.
+ */
+export function MiniEstado({ estado, className, leve }: { estado: EstadoConectividade; className?: string; leve?: boolean }) {
   const { rotulo, classe, Icone } = ESTILO[estado];
   return (
     <span className={cn("inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium", classe, className)}>
-      <Icone className="h-3 w-3" />
+      {leve ? <span className="h-1.5 w-1.5 rounded-full bg-current" /> : <Icone className="h-3 w-3" />}
       {rotulo}
     </span>
   );
@@ -30,20 +33,16 @@ export function ResumoProjecao({
   cabo: EstadoConectividade;
   semFio: EstadoConectividade;
 }) {
-  if (geral === "nao_identificado") return <MiniEstado estado="nao_identificado" />;
-  if (geral === "nao_disponivel") return <MiniEstado estado="nao_disponivel" />;
+  if (geral === "nao_identificado") return <MiniEstado estado="nao_identificado" leve />;
+  if (geral === "nao_disponivel") return <MiniEstado estado="nao_disponivel" leve />;
   return (
-    <div className="flex flex-col gap-1 text-[11px]">
-      <span className="flex items-center justify-between gap-2">
-        <span className="text-muted-foreground">Cabo</span>
-        <MiniEstado estado={cabo} />
-      </span>
-      <span className="flex items-center justify-between gap-2">
-        <span className="text-muted-foreground">Sem fio</span>
-        <MiniEstado estado={semFio} />
-      </span>
-      {geral === "depende_versao" ? <span className="text-muted-foreground">(só em algumas versões)</span> : null}
-    </div>
+    <span className="grid grid-cols-[auto_auto] items-center justify-start gap-x-2 gap-y-1 text-[11px]">
+      <span className="text-muted-foreground">Cabo</span>
+      <MiniEstado estado={cabo} leve />
+      <span className="text-muted-foreground">Sem fio</span>
+      <MiniEstado estado={semFio} leve />
+      {geral === "depende_versao" ? <span className="col-span-2 text-muted-foreground">só em algumas versões</span> : null}
+    </span>
   );
 }
 
