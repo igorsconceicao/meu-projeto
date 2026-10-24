@@ -167,6 +167,15 @@ on conflict (veiculo_id, posicao) do update set medida_mm=excluded.medida_mm, me
 ```
 Atenção nas palhetas: catálogos listam por ano de aplicação ("Onix 2020→"); confira que o intervalo cobre o modelo atual e copie o intervalo na evidência. Nunca use medida de outro modelo da marca.
 
+### Critérios fixados na revisão de 24/10/2026 (valem para todas as rodadas)
+- Catálogo/loja do próprio fabricante da palheta (Rodex, Wega/Autoimpact, Bosch, Dyna...): 'bem_fundamentado' **só se o intervalo de anos cobre o `ano_modelo` do veículo** (ex.: "2022 a 2025" serve para o Corolla Cross 2025). Se o intervalo termina antes (ex.: "até 2025" para um modelo 2026/2027, mesmo que seja a mesma geração) → 'nao_confirmado', dizendo o intervalo na evidência.
+- Nome do modelo diferente no catálogo (ex.: "Poer P3" para o P30) → 'nao_confirmado', com o aviso na evidência.
+- Só um lado com medida: grave só esse lado (o site mostra "passageiro 16"" para não parecer o jogo completo).
+- "Não tem sem fio" ('nao_disponivel') exige fonte do ano-modelo atual. Matéria de ano-modelo anterior dizendo "só por cabo" → deixe 'nao_identificado' e anote em `observacoes` (atualizações de software mudam isso).
+- Fonte que cita um aplicativo de espelhamento próprio (EasyConnection, CarbitLink, QDLink) não confirma CarPlay/Android Auto nem cabo deles.
+- Manual de outro modelo (o nome do arquivo ou a capa cita outro carro) não serve como fonte do modelo pesquisado.
+- Fontes de palheta que funcionaram: catálogo Wega 2026 em PDF (autoimpact.com.br), páginas de produto da Rodex (palhetasrodex.com.br), loja de peças oficial VW (pecas.vw.com.br, só OEM). Manuais oficiais em PDF da GWM e da BYD trazem cabo/sem fio de CarPlay e Android Auto.
+
 ### Orçamento e relatório
 ~4 a 6 chamadas por veículo, no máximo ~110 no total. Ordem: primeiro os veículos SEM CarPlay/AA identificado, depois cabo/sem fio, depois palhetas. Pule 'volkswagen-tukan' e 'denza-d9' (não vendidos ainda).
 Relatório final: tabela `slug | CarPlay (geral/cabo/sem fio) | AA (geral/cabo/sem fio) | tela | palheta dianteira | palheta traseira | fonte principal | confiança` + até 5 linhas de observações.
