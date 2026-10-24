@@ -68,16 +68,23 @@ function medida(p: Palheta): string | null {
   return null;
 }
 
-/** Medidas das palhetas em texto curto: dianteiras (motorista + passageiro) e traseira. */
+/**
+ * Medidas das palhetas em texto curto: dianteiras (motorista + passageiro) e traseira.
+ * Quando só um lado tem medida, o lado é escrito, para não parecer o jogo completo.
+ */
 export function resumoPalhetas(palhetas: Palheta[] | undefined) {
   const lista = palhetas ?? [];
-  const motorista = lista.find((p) => /diant/i.test(p.posicao) && /motor/i.test(p.posicao));
-  const passageiro = lista.find((p) => /diant/i.test(p.posicao) && /passag/i.test(p.posicao));
-  const outraDianteira = lista.find((p) => /diant/i.test(p.posicao) && p !== motorista && p !== passageiro);
-  const traseira = lista.find((p) => /tras/i.test(p.posicao));
-  const dianteiras = [motorista, passageiro, outraDianteira].filter((p): p is Palheta => !!p).map(medida).filter(Boolean);
-  return {
-    dianteira: dianteiras.length ? dianteiras.join(" + ") : null,
-    traseira: traseira ? medida(traseira) : null,
-  };
+  const achar = (re: RegExp) => lista.find((p) => /diant/i.test(p.posicao) && re.test(p.posicao) && medida(p));
+  const motorista = achar(/motor/i);
+  const passageiro = achar(/passag/i);
+  const outraDianteira = lista.find((p) => /diant/i.test(p.posicao) && !/motor|passag/i.test(p.posicao) && medida(p));
+  const traseira = lista.find((p) => /tras/i.test(p.posicao) && medida(p));
+
+  let dianteira: string | null = null;
+  if (motorista && passageiro) dianteira = `${medida(motorista)} + ${medida(passageiro)}`;
+  else if (motorista) dianteira = `motorista ${medida(motorista)}`;
+  else if (passageiro) dianteira = `passageiro ${medida(passageiro)}`;
+  else if (outraDianteira) dianteira = medida(outraDianteira);
+
+  return { dianteira, traseira: traseira ? medida(traseira) : null };
 }
