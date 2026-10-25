@@ -8,6 +8,11 @@
 //   Aceita também PDFs (fichas técnicas oficiais): o texto é extraído com unpdf.
 // POST { acao: "texto", paginas: [{ id, url, inicio?, tamanho? }] }
 //   → um pedaço contínuo do texto (páginas longas e PDFs, como o informativo da Fenabrave).
+// POST { acao: "youtube", buscas: [{ id, termo, limite? }] }
+//   → vídeos da busca do YouTube (id, título, canal, link). Título e descrição de
+//   um vídeo saem com "pagina"/"trechos" na URL do vídeo (descrição vai em [d]).
+// POST { acao: "imagens", imagens: [{ id, url }] }
+//   → status, tipo, tamanho e dimensões de cada foto cadastrada (confere se abre).
 // POST { acao: "commons", consultas: [{ id, termo, limite? }] }
 // POST { acao: "commons-categoria", categorias: [{ id, categoria, limite? }] }
 //   → arquivos do Wikimedia Commons com autor, licença, descrição e categorias.
@@ -50,6 +55,27 @@ const DOMINIOS_GLOBAIS = [
   "changanauto.com",
   "mgmotor.com",
   "kia.com",
+  "porsche.com", // newsroom e páginas /brazil da Porsche
+  "bmwgroup.com", // sala de imprensa da BMW e da MINI (press.bmwgroup.com/brazil)
+  "youtube.com", // vídeos de lançamento e avaliações (título, canal e descrição)
+  // Salas de imprensa globais oficiais, para modelos que a imprensa brasileira não detalha
+  "mercedes-benz.com",
+  "daimler.com",
+  "mbusa.com",
+  "audi-mediacenter.com",
+  "audiusa.com",
+  "ford.com",
+  "volkswagen-newsroom.com",
+  "toyota.com",
+  "toyota-europe.com",
+  "lexus.com",
+  "mitsubishi-motors.com",
+  "nissan-global.com",
+  "nissannews.com",
+  // CDNs de imagem dos sites oficiais (só para conferir se as fotos cadastradas abrem)
+  "volkswagen.com",
+  "datocms-assets.com",
+  "storyblok.com",
 ];
 
 function hostPermitido(url: string): boolean {
@@ -135,6 +161,13 @@ function textos(html: string): { visivel: string; dados: string } {
   }
   for (const m of html.matchAll(/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)/g)) {
     dados.push(m[1]);
+  }
+  // Página de vídeo do YouTube: título, canal e descrição ficam no ytInitialPlayerResponse.
+  const yt = (chave: string) => html.match(new RegExp(`"${chave}":"((?:[^"\\\\]|\\\\.)*)"`))?.[1];
+  const descricaoYt = yt("shortDescription");
+  if (descricaoYt !== undefined) {
+    const json = (s?: string) => { try { return JSON.parse(`"${s ?? ""}"`) as string; } catch { return s ?? ""; } };
+    dados.push(`Vídeo: ${json(yt("title"))} | Canal: ${json(yt("author") ?? yt("ownerChannelName"))} | Publicado: ${yt("publishDate") ?? ""} | Descrição: ${json(descricaoYt)}`);
   }
   const visivel = html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -250,6 +283,92 @@ async function buscarTexto(p: { id: string; url: string; inicio?: number; tamanh
   };
 }
 
+/** Busca no YouTube: lista de vídeos com título e canal (do ytInitialData da página de resultados). */
+async function buscarYoutube(b: { id: string; termo: string; limite?: number }) {
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(b.termo)}&hl=pt-BR&gl=BR`;
+  const r = await baixar(url);
+  if ("erro" in r) return { id: b.id, ...r };
+  const lim = Math.min(b.limite ?? 8, 20);
+  const videos: { video: string; titulo: string; canal: string | null; publicado: string | null; url: string }[] = [];
+  const texto = (s?: string) => { try { return JSON.parse(`"${s ?? ""}"`) as string; } catch { return s ?? ""; } };
+  for (const m of r.html.matchAll(/"videoRenderer":\{"videoId":"([\w-]{11})"/g)) {
+    if (videos.some((v) => v.video === m[1])) continue;
+    const bloco = r.html.slice(m.index!, m.index! + 6000);
+    const titulo = bloco.match(/"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/)?.[1];
+    if (!titulo) continue;
+    videos.push({
+      video: m[1],
+      titulo: texto(titulo),
+      canal: texto(bloco.match(/"ownerText":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/)?.[1]) || null,
+      publicado: bloco.match(/"publishedTimeText":\{"simpleText":"([^"]*)"/)?.[1] ?? null,
+      url: `https://www.youtube.com/watch?v=${m[1]}`,
+    });
+    if (videos.length >= lim) break;
+  }
+  return { id: b.id, termo: b.termo, status: r.status, videos };
+}
+
+/** Largura e altura lidas do cabeçalho do arquivo (JPEG, PNG, GIF, WebP e AVIF). */
+function dimensoes(b: Uint8Array): { w: number; h: number; formato: string } | null {
+  const be16 = (i: number) => (b[i] << 8) | b[i + 1];
+  const le16 = (i: number) => b[i] | (b[i + 1] << 8);
+  const le24 = (i: number) => b[i] | (b[i + 1] << 8) | (b[i + 2] << 16);
+  const be32 = (i: number) => ((b[i] << 24) >>> 0) + ((b[i + 1] << 16) | (b[i + 2] << 8) | b[i + 3]);
+  const ascii = (i: number, n: number) => String.fromCharCode(...b.slice(i, i + n));
+  if (b[0] === 0x89 && ascii(1, 3) === "PNG") return { w: be32(16), h: be32(20), formato: "png" };
+  if (ascii(0, 3) === "GIF") return { w: le16(6), h: le16(8), formato: "gif" };
+  if (ascii(0, 4) === "RIFF" && ascii(8, 4) === "WEBP") {
+    const c = ascii(12, 4);
+    if (c === "VP8 ") return { w: le16(26) & 0x3fff, h: le16(28) & 0x3fff, formato: "webp" };
+    if (c === "VP8L") {
+      return { w: 1 + (((b[22] & 0x3f) << 8) | b[21]), h: 1 + (((b[24] & 0xf) << 10) | (b[23] << 2) | ((b[22] & 0xc0) >> 6)), formato: "webp" };
+    }
+    if (c === "VP8X") return { w: 1 + le24(24), h: 1 + le24(27), formato: "webp" };
+  }
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < b.length && b[i] === 0xff) {
+      const m = b[i + 1];
+      if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { w: be16(i + 7), h: be16(i + 5), formato: "jpeg" };
+      i += 2 + be16(i + 2);
+    }
+  }
+  for (let i = 4; i + 16 < Math.min(b.length, 4096); i++) {
+    if (ascii(i, 4) === "ispe") return { w: be32(i + 8), h: be32(i + 12), formato: "avif" };
+  }
+  return null;
+}
+
+/** Confere se uma foto cadastrada abre: status, tipo, tamanho e dimensões (lê só o começo do arquivo). */
+async function conferirImagem(p: { id: string; url: string }) {
+  if (!hostPermitido(p.url)) return { id: p.id, erro: "dominio-nao-permitido" };
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20000);
+  try {
+    const res = await fetch(p.url, { headers: { "User-Agent": UA, "Accept": "image/*,*/*" }, redirect: "follow", signal: ctrl.signal });
+    const tipo = res.headers.get("content-type");
+    const tamanho = res.headers.get("content-length");
+    const partes: Uint8Array[] = [];
+    let lidos = 0;
+    const leitor = res.body?.getReader();
+    while (leitor && lidos < 262_144) {
+      const { done, value } = await leitor.read();
+      if (done) break;
+      partes.push(value);
+      lidos += value.byteLength;
+    }
+    await leitor?.cancel();
+    const inicio = new Uint8Array(lidos);
+    let pos = 0;
+    for (const parte of partes) { inicio.set(parte, pos); pos += parte.byteLength; }
+    return { id: p.id, status: res.status, tipo, tamanho: tamanho ? Number(tamanho) : null, ...dimensoes(inicio), finalUrl: res.url };
+  } catch (e: any) {
+    return { id: p.id, erro: String(e?.message ?? e) };
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 function limpar(s: unknown, max: number): string | null {
   if (typeof s !== "string") return null;
   return s.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, max) || null;
@@ -339,6 +458,10 @@ Deno.serve(async (req) => {
     resultado = await emLotes(body.paginas ?? [], 6, buscarTrechos);
   } else if (body.acao === "texto") {
     resultado = await emLotes(body.paginas ?? [], 3, buscarTexto);
+  } else if (body.acao === "youtube") {
+    resultado = await emLotes(body.buscas ?? [], 3, buscarYoutube);
+  } else if (body.acao === "imagens") {
+    resultado = await emLotes(body.imagens ?? [], 8, conferirImagem);
   } else if (body.acao === "commons") {
     resultado = await emLotes(body.consultas ?? [], 4, commonsBusca);
   } else if (body.acao === "commons-categoria") {

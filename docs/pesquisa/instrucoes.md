@@ -1,8 +1,8 @@
 # Instruções de pesquisa do catálogo
 
 Este arquivo é a referência para qualquer rodada de coleta de dados (manual ou
-pela rotina automática quinzenal). Ele acumula as regras das rodadas 1 a 8:
-**as seções "RODADA 6", "RODADA 7" e "RODADA 8" são as que valem hoje** e
+pela rotina automática quinzenal). Ele acumula as regras das rodadas 1 a 9:
+**as seções "RODADA 6" a "RODADA 9" são as que valem hoje** e
 prevalecem sobre as anteriores.
 Em `consultado_em` e `verificado_br_em` use sempre a data do dia da coleta.
 
@@ -234,6 +234,35 @@ Relatório final: tabela `slug | CarPlay (geral/cabo/sem fio) | AA (geral/cabo/s
 - `interno.atualizar_segmentos_fenabrave()` roda pelo pg_cron nos dias 1 a 15 (11:47 e 13:47 UTC): pede o texto do informativo mais recente e grava em `emplacamentos_segmentos` (fonte 'fenabrave') e `participacao_segmentos`. Se falhar, rode à mão: `select interno.atualizar_segmentos_fenabrave();` (repita depois de alguns minutos).
 - **Ranking premium** (manual, uma vez por mês): a Bright Consulting divulga "carros e marcas premium mais vendidos"; o CarBlog publica a tabela (ex.: https://www.car.blog.br/2026/10/carros-e-marcas-premium-mais-vendidos.html). Grave em `emplacamentos_segmentos` com `fonte = 'bright_consulting'`, `grupo = 'Premium'`, `segmento = 'Premium — modelos'` (modelo) ou `'Premium — marcas'` (modelo = ''), `unidades` do mês, `participacao` = market share, `fonte_url` = página lida, `edicao` = 'Bright Consulting (via CarBlog, dd/mm/aaaa)'. Marca e modelo como na tabela (ex.: 'M.BENZ', 'GLC 300').
 
+## RODADA 9 (2026-10-25) — TODOS OS 269 COM CARPLAY/AA IDENTIFICADO E FOTO CONFERIDA
+
+### Situação em 25/10/2026
+- 269 de 269 veículos com CarPlay e Android Auto identificados (79 `confirmado`, 151 `bem_fundamentado`, 39 `nao_confirmado`) e 269 de 269 com foto conferida. As listas de "faltam" da RODADA 8 estão superadas.
+- Sem CarPlay/Android Auto de fábrica (`nao_disponivel`): Fiat Scudo e Fiorino, Peugeot Partner Rapid e Expert, Citroën Jumpy, Kia Bongo, Leapmotor C10 (donos instalam adaptador Carlinkit) e GAC Aion ES (só Android Auto). Porsche 718 Boxster/Cayman: sem Android Auto; CarPlay só por cabo e opcional.
+- `depende_versao`: VW Polo Track (central opcional), Fiat Ducato (pacote) e Citroën Jumper (Minibus).
+- Fontes que divergem (anotado em `observacoes`; confirmar em concessionária antes de trocar): Amarok (cabo × sem fio), Leapmotor C10, Avatr 11 (Webmotors × HarmonyOS), Audi Q8 (o sem fio falhou no teste do Vrum).
+- Próxima prioridade: trocar os 39 `nao_confirmado` por fonte oficial brasileira e seguir com palhetas/OEM (RODADA 7).
+
+### Fontes novas para CarPlay/Android Auto
+- **Fichas da Webmotors**: o JSON-LD da página da versão tem `"name":"Tecnologia","value":"..."`. Use `trechos` com essa palavra e `max` 8 para pegar todas as versões → `bem_fundamentado`.
+- **ask.porsche.com** (respostas oficiais da Porsche) → `bem_fundamentado`.
+- **Stellantis Media**: documentos de modelo e comunicados específicos (furgões, Ram) → `bem_fundamentado`; **ofertas.vw.com.br** e **ford.com.br** → `confirmado`.
+- **YouTube** (ação `youtube`, título e descrição): só `nao_confirmado`, como prova de uso (ex.: donos instalando Carlinkit no Leapmotor C10).
+- Ausência deduzida (nenhuma fonte cita CarPlay) nunca vira `nao_disponivel` com confiança alta: grave `nao_confirmado` e explique em `observacoes`.
+
+### Conferência das fotos (ação `imagens`)
+`{"acao":"imagens","imagens":[{"id":"<slug>","url":"..."}]}` devolve status HTTP, tipo, tamanho e largura × altura lidas do próprio arquivo. Rode em lotes de 45 e leia `net._http_response` de cada id:
+```sql
+select n, interno.pesquisar_midia(jsonb_build_object('acao','imagens','imagens',
+  (select jsonb_agg(jsonb_build_object('id',slug,'url',foto_principal_url))
+   from (select slug, foto_principal_url from veiculos where situacao <> 'Descontinuado'
+         order by slug limit 45 offset n*45) s))) from generate_series(0,5) n;
+```
+Troque a foto quando: status ≠ 200; largura abaixo de 400 px; proporção acima de 2,6:1 ou em retrato (o site recorta em 16:9); ou poucos bytes para o tamanho (800×300 com 522 bytes é imagem vazia). Tipo `application/octet-stream` (Kia, GAC, Caoa) não é problema: o navegador reconhece o arquivo.
+- Já apareceram e foram trocados em 25/10: faixas de texto de 40 px de altura no lugar da foto (Haval H6 `…-flex.webp`), seletor de cor vazio (ORA 03 `…-cor.webp`), miniaturas de 200×200 (Lexus `og.jpg`), a imagem de "sem foto" da Stellantis Media (`2beb5427….png`, 510×270) e banners de celular 1080×1920 (GAC `…-m.jpg`; o do Aion Y era um desenho de dimensões).
+- Onde achar foto boa: **GWM** — galeria `dianteira-…` da página do modelo; **GAC** — menu de modelos nos dados da página inicial (`operation/ncar/page/…-0.webp` logo depois do nome e do código do modelo); **Nissan** — imagem principal `…hero-d.webp.ximg.l_12_m.smart.webp`; **Renault** — `ONE_DACIA_PP_XLARGE_DENSITY2` no lugar de `LARGE_DENSITY1`.
+- A imagem não pode ser vista daqui: a escolha se apoia no nome do arquivo, nas dimensões e na descrição/categorias do Commons. Para foto do Commons de modelo chinês, confirme pela ficha que é a mesma versão (ex.: Aion Y brasileiro = Aion Y Plus, bateria de 63,2 kWh). Na dúvida sobre a geração, prefira a foto oficial brasileira.
+
 ---
 
 ## ROTINA QUINZENAL (automática, dias 2 e 16 de cada mês)
@@ -250,5 +279,6 @@ A rotina roda numa sessão nova, sem memória das anteriores. Passos:
 2. **Lacunas de dados (prioridade do usuário: zerar as pendências).** Escolha até 25 veículos, nesta ordem: sem CarPlay/Android Auto identificado (inclui as marcas premium); sem informação de sem fio; sem informação de cabo (Streambox — siga a RODADA 7); sem palhetas ou sem OEM de palheta. Comece pelos mais vendidos. Além dos sites oficiais e da imprensa, procure em fóruns de donos, vídeos do YouTube (título e descrição) e no Google; esses valem só como `nao_confirmado`, com o link e o trecho, marcados "(fórum)", "(vídeo)" ou "(trecho do resultado de busca)". Na execução seguinte, tente trocar uma fonte `nao_confirmado` por uma oficial.
    `select v.slug, m.carplay, m.android_auto, m.carplay_cabo, m.carplay_sem_fio, m.android_auto_cabo, m.android_auto_sem_fio, m.tela_polegadas, (select count(*) from palhetas p where p.veiculo_id = v.id) as palhetas from veiculos v left join multimidias m on m.veiculo_id = v.id where v.situacao <> 'Descontinuado' order by (m.veiculo_id is null or m.carplay = 'nao_identificado' or m.android_auto = 'nao_identificado') desc, (m.carplay_sem_fio = 'nao_identificado' and m.android_auto_sem_fio = 'nao_identificado') desc, (m.carplay_cabo = 'nao_identificado' and m.android_auto_cabo = 'nao_identificado') desc, (select count(*) from palhetas p where p.veiculo_id = v.id) asc limit 25;`
    Pesquise e grave seguindo a RODADA 6 (fonte com link e trecho, confiança conforme o tipo de fonte, nunca deduzir).
+2b. **Fotos (na execução do dia 2).** Rode a conferência da RODADA 9 em todos os veículos e troque as fotos que falharem, além de dar foto aos modelos novos.
 3. **Limites.** No máximo ~150 chamadas de ferramenta. Nunca UPDATE/DELETE (use `insert ... on conflict`). Não mexa em código do site.
 4. **Fim.** Responda com um resumo curto: modelos novos cadastrados, veículos completados (o que entrou em cada um) e o que ficou sem fonte.

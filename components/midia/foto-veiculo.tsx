@@ -35,7 +35,22 @@ export function FotoVeiculo({
   mostrarAviso?: boolean;
 }) {
   const [erroImg, setErroImg] = React.useState(false);
+  const [inteira, setInteira] = React.useState(false);
+  const imgRef = React.useRef<HTMLImageElement>(null);
   const temFoto = Boolean(fotoUrl) && !erroImg;
+
+  // Recortes de produto muito largos (e fotos em pé) perderiam a frente e a traseira no 16:9:
+  // nesses casos a foto aparece inteira, com faixas neutras.
+  const ajustar = React.useCallback((img: HTMLImageElement) => {
+    const { naturalWidth: w, naturalHeight: h } = img;
+    if (w && h) setInteira(w / h > 2.15 || w / h < 1);
+  }, []);
+
+  // A imagem pode terminar de carregar antes da hidratação, quando o onLoad já passou.
+  React.useEffect(() => {
+    const img = imgRef.current;
+    if (img?.complete) ajustar(img);
+  }, [ajustar, fotoUrl]);
 
   if (temFoto) {
     return (
@@ -48,10 +63,12 @@ export function FotoVeiculo({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          ref={imgRef}
           src={fotoUrl!}
           alt={`${nome}`}
-          className="h-full w-full object-cover"
+          className={cn("h-full w-full", inteira ? "object-contain" : "object-cover")}
           loading="lazy"
+          onLoad={(e) => ajustar(e.currentTarget)}
           onError={() => setErroImg(true)}
         />
       </div>
