@@ -54,6 +54,7 @@ export function rotuloConexao(v: Veiculo): string {
     if (semFio === "algumas") return "Cabo · sem fio em algumas versões";
     return "Cabo · sem fio não confirmado";
   }
+  if (semFio === "algumas") return "Sem fio em algumas versões · cabo a confirmar";
   if (semFio !== "nenhuma") return "Sem fio · cabo a confirmar";
   return "Conexão a confirmar";
 }
