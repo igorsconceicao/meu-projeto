@@ -120,13 +120,28 @@ function ListaModelos({ alvos, rotuloVendas }: { alvos: Alvo[]; rotuloVendas: st
   );
 }
 
-function TabelaMedidas({ titulo, descricao, itens }: { titulo: string; descricao: string; itens: GrupoMedida[] }) {
+function TabelaMedidas({
+  titulo,
+  descricao,
+  itens,
+  rotuloVendas,
+}: {
+  titulo: string;
+  descricao: string;
+  itens: GrupoMedida[];
+  rotuloVendas: string;
+}) {
   if (!itens.length) return null;
   return (
     <div className="space-y-2">
       <div>
         <p className="text-sm font-medium">{titulo}</p>
         <p className="text-xs text-muted-foreground">{descricao}</p>
+      </div>
+      <div className="hidden grid-cols-[7rem_1fr_7rem] gap-4 px-3 text-xs font-medium text-muted-foreground md:grid">
+        <span>Medida</span>
+        <span>Carros que usam</span>
+        <span className="text-right">{rotuloVendas}</span>
       </div>
       <ul className="divide-y rounded-md border">
         {itens.slice(0, 8).map((g) => (
@@ -276,7 +291,7 @@ export default async function PaginaOportunidades() {
               </div>
 
               {o.grupos?.map((g) => (
-                <TabelaMedidas key={g.titulo} titulo={g.titulo} descricao={g.descricao} itens={g.itens} />
+                <TabelaMedidas key={g.titulo} titulo={g.titulo} descricao={g.descricao} itens={g.itens} rotuloVendas={rotuloVendas} />
               ))}
 
               <div className="space-y-2">
