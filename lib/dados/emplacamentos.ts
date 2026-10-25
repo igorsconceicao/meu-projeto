@@ -54,6 +54,9 @@ const MARCA_FENABRAVE: Record<string, string[]> = {
   "CAOA CHERY": ["chery"],
   "OMODA JAECOO": ["omoda", "jaecoo"],
   CITROEN: ["citroen"],
+  "M.BENZ": ["mercedes-benz"],
+  "LAND ROVER": ["land-rover"],
+  "CAOA CHANGAN": ["changan"],
 };
 
 export function slugsMarca(marca: string): string[] {
@@ -78,7 +81,17 @@ function formasDoNome(v: Veiculo): string[][] {
   return i ? [nome, nome.slice(i)] : [nome];
 }
 
+// Código de versão das marcas premium no ranking ("GLC 300", "GLB 220"): mesma família.
+const CODIGO_VERSAO = /^\d{3}$/;
+
 function comparar(modelo: string[], nome: string[]): "igual" | "variante" | null {
+  if (
+    nome.length < modelo.length &&
+    nome.every((p, i) => modelo[i] === p) &&
+    modelo.slice(nome.length).every((p) => CODIGO_VERSAO.test(p))
+  ) {
+    return "variante";
+  }
   if (nome.length < modelo.length || !modelo.every((p, i) => nome[i] === p)) return null;
   const resto = nome.slice(modelo.length);
   if (!resto.length) return "igual";
@@ -90,7 +103,7 @@ function comparar(modelo: string[], nome: string[]): "igual" | "variante" | null
  * marca na frente) ou, havendo um único candidato, a mesma família com sufixo
  * de motorização. Nunca liga por aproximação ambígua.
  */
-export function ligarAoCatalogo(ranking: Emplacamento[], veiculos: Veiculo[]) {
+export function ligarAoCatalogo<E extends Emplacamento>(ranking: E[], veiculos: Veiculo[]) {
   const porMarca = new Map<string, Veiculo[]>();
   for (const v of veiculos) {
     porMarca.set(v.montadoraSlug, [...(porMarca.get(v.montadoraSlug) ?? []), v]);

@@ -43,3 +43,17 @@ export function farolPorVersao(v: Veiculo): "led" | "misto" | "halogeno" | "outr
   if (halogeno) return "halogeno";
   return "outro";
 }
+
+/** Frase curta do CarPlay/Android Auto por cabo e sem fio, para listas e rankings. */
+export function rotuloConexao(v: Veiculo): string {
+  const cabo = conexaoCabo(v);
+  const semFio = projecaoSemFio(v);
+  if (cabo === "so-sem-fio") return "Só sem fio (não aceita cabo)";
+  if (cabo === "cabo") {
+    if (semFio === "todas") return "Cabo e sem fio";
+    if (semFio === "algumas") return "Cabo · sem fio em algumas versões";
+    return "Cabo · sem fio não confirmado";
+  }
+  if (semFio !== "nenhuma") return "Sem fio · cabo a confirmar";
+  return "Conexão a confirmar";
+}

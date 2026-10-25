@@ -82,7 +82,7 @@ function agrupar(itens: { alvo: Alvo; medida: string | null }[]): GrupoMedida[] 
 }
 
 /** "Geely EX2" em vez de "Geely Geely EX2" quando o nome comercial já traz a marca. */
-function nomeVeiculo(v: Veiculo) {
+export function nomeVeiculo(v: Veiculo) {
   const marca = v.marca.toLowerCase();
   const nome = v.nomeComercial.toLowerCase();
   const primeira = marca.split(" ")[0];
