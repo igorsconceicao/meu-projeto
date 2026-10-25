@@ -59,6 +59,16 @@ const MARCA_FENABRAVE: Record<string, string[]> = {
   "CAOA CHANGAN": ["changan"],
 };
 
+// Modelos que a Fenabrave publica pelo nome da versão ("BMW/320I") → veículo do catálogo.
+const APELIDOS: Record<string, string> = {
+  "BMW/320I": "bmw-serie-3",
+  "BMW/330E": "bmw-serie-3",
+  "BMW/530E": "bmw-serie-5",
+  "BMW/220": "bmw-serie-2-gran-coupe",
+  "BMW/M235I": "bmw-serie-2-gran-coupe",
+  "BMW/I4": "bmw-i4",
+};
+
 export function slugsMarca(marca: string): string[] {
   return MARCA_FENABRAVE[marca] ?? [normalizar(marca).replace(/[^a-z0-9]/g, "")];
 }
@@ -108,7 +118,10 @@ export function ligarAoCatalogo<E extends Emplacamento>(ranking: E[], veiculos: 
   for (const v of veiculos) {
     porMarca.set(v.montadoraSlug, [...(porMarca.get(v.montadoraSlug) ?? []), v]);
   }
+  const porSlug = new Map(veiculos.map((v) => [v.slug, v]));
   return ranking.map((e) => {
+    const apelido = porSlug.get(APELIDOS[`${e.marca}/${e.modelo}`] ?? "");
+    if (apelido) return { ...e, veiculo: apelido as Veiculo | undefined, ligacao: "familia" as const, montadoraSlug: apelido.montadoraSlug };
     const slugs = slugsMarca(e.marca).filter((s) => porMarca.has(s));
     const candidatos = slugs.flatMap((s) => porMarca.get(s) ?? []);
     const modelo = palavras(e.modelo);

@@ -208,7 +208,7 @@ export default async function PaginaInicio() {
                   <span className="text-muted-foreground">
                     {premium.marcas
                       .slice(0, 5)
-                      .map((m) => `${m.marca === "M.BENZ" ? "Mercedes-Benz" : titulo(m.marca)} ${formatarNumero(m.unidades)}`)
+                      .map((m) => `${nomeMarca(m.marca)} ${formatarNumero(m.unidades)}`)
                       .join(" · ")}
                   </span>
                 </p>
@@ -259,14 +259,31 @@ export default async function PaginaInicio() {
   );
 }
 
+const MARCAS: Record<string, string> = {
+  VW: "Volkswagen",
+  GM: "Chevrolet",
+  "M.BENZ": "Mercedes-Benz",
+  BMW: "BMW",
+  BYD: "BYD",
+  GWM: "GWM",
+  GAC: "GAC",
+};
+
+/** "VOLVO" → "Volvo", "T CROSS" → "T Cross"; siglas e nomes com número ficam como estão (XC60, HB20S). */
 function titulo(s: string) {
-  return s.length <= 3 ? s : s.charAt(0) + s.slice(1).toLowerCase();
+  return s
+    .split(" ")
+    .map((p) => (/^[A-ZÀ-Ú-]{4,}$/.test(p) || /^[A-ZÀ-Ú]$/.test(p) ? p.charAt(0) + p.slice(1).toLowerCase() : p))
+    .join(" ");
 }
 
-/** Nome como a fonte publica, quando o modelo não está no catálogo ("PORSCHE/CAYENNE" → "Porsche CAYENNE"). */
+function nomeMarca(marca: string) {
+  return MARCAS[marca] ?? titulo(marca);
+}
+
+/** Nome como a fonte publica, quando o modelo não está no catálogo ("PORSCHE/CAYENNE" → "Porsche Cayenne"). */
 function nomeFonte(item: { marca: string; modelo: string }) {
-  const marca = item.marca === "M.BENZ" ? "Mercedes-Benz" : item.marca === "GM" ? "Chevrolet" : titulo(item.marca);
-  return `${marca} ${item.modelo}`.trim();
+  return `${nomeMarca(item.marca)} ${titulo(item.modelo)}`.trim();
 }
 
 function BlocoTop({ bloco, logos }: { bloco: BlocoRanking; logos: Map<string, string> }) {
