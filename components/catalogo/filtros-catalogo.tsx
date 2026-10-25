@@ -89,8 +89,10 @@ export function FiltrosCatalogo({
           aria-label="Conectividade"
         >
           <option value="">CarPlay / Android Auto</option>
-          <option value="sem-fio">Com sem fio</option>
+          <option value="sem-fio">Tem sem fio</option>
           <option value="so-cabo">Sem fio não confirmado</option>
+          <option value="cabo">Funciona por cabo (Streambox)</option>
+          <option value="so-sem-fio">Só sem fio: não aceita cabo</option>
         </select>
         <select
           className={CLASSE_SELECT}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowDown, Lightbulb, MonitorSmartphone, Wifi, Wind } from "lucide-react";
+import { ArrowDown, Cable, Lightbulb, MonitorSmartphone, Radio, Wifi, Wind } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,8 @@ export const metadata = { title: "Oportunidades" };
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 const ICONE: Record<string, typeof Wifi> = {
+  streambox: Cable,
+  "streambox-sem-fio": Radio,
   "adaptador-sem-fio": Wifi,
   palhetas: Wind,
   "central-multimidia": MonitorSmartphone,
@@ -289,6 +291,8 @@ export default async function PaginaOportunidades() {
                   </div>
                 ))}
               </div>
+
+              {o.aviso ? <p className="rounded-lg bg-warning/10 px-3 py-2 text-sm text-warning">{o.aviso}</p> : null}
 
               {o.grupos?.map((g) => (
                 <TabelaMedidas key={g.titulo} titulo={g.titulo} descricao={g.descricao} itens={g.itens} rotuloVendas={rotuloVendas} />

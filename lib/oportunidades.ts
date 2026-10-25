@@ -1,7 +1,7 @@
 // Oportunidades para o laboratório, calculadas com regras simples a partir do
 // catálogo técnico (dados com fonte) e do ranking de emplacamentos da Fenabrave.
 // Nenhum número é estimado: as vendas são as publicadas e cada dado do carro tem fonte.
-import { farolPorVersao, tipoFarol } from "@/lib/classificacao";
+import { conexaoCabo, farolPorVersao, tipoFarol } from "@/lib/classificacao";
 import { ligarAoCatalogo, type Emplacamento } from "@/lib/dados/emplacamentos";
 import { chavePalhetas } from "@/lib/palhetas";
 import type { EstadoConectividade, Veiculo } from "@/lib/tipos";
@@ -30,6 +30,8 @@ export type Oportunidade = {
   produto: string;
   oQueE: string;
   comoEscolhemos: string;
+  /** Observação curta sobre o que ainda falta pesquisar. */
+  aviso?: string;
   validar: string[];
   alvos: Alvo[];
   /** Soma dos emplacamentos no ano dos modelos que estão no ranking. */
@@ -99,6 +101,33 @@ export function calcularOportunidades(veiculos: Veiculo[], emplacamentos: Emplac
     fonteUrl: fonteUrl ?? null,
   });
 
+  // Streambox: conecta pela porta USB, via CarPlay ou Android Auto por cabo.
+  const viaCabo = (e: EstadoConectividade) => e === "confirmado" || e === "depende_versao";
+  const streambox = veiculos.flatMap((v) => {
+    const mm = v.tecnicos?.multimidia;
+    if (!mm || conexaoCabo(v) !== "cabo") return [];
+    const cp = viaCabo(mm.carplayCabo);
+    const aa = viaCabo(mm.androidAutoCabo);
+    const quem = cp && aa ? "CarPlay e Android Auto" : cp ? "CarPlay" : "Android Auto";
+    const soAlgumas = ![mm.carplayCabo, mm.androidAutoCabo].includes("confirmado");
+    const certeza: Certeza = mm.confianca === "nao_confirmado" ? "conferir" : soAlgumas ? "parcial" : "confirmado";
+    return [alvo(v, `${quem} por cabo${soAlgumas ? " em algumas versões" : ""}`, certeza, mm.fonteUrl)];
+  });
+  const caboSemInfo = veiculos.filter((v) => {
+    const mm = v.tecnicos?.multimidia;
+    return mm && (temProjecao(mm.carplay) || temProjecao(mm.androidAuto)) && conexaoCabo(v) === "sem-info";
+  }).length;
+
+  // Streambox sem fio: CarPlay/Android Auto só sem fio, o cabo não funciona.
+  const streamboxSemFio = veiculos.flatMap((v) => {
+    const mm = v.tecnicos?.multimidia;
+    if (!mm || conexaoCabo(v) !== "so-sem-fio") return [];
+    const cp = mm.carplayCabo === "nao_disponivel" && mm.carplaySemFio === "confirmado";
+    const aa = mm.androidAutoCabo === "nao_disponivel" && mm.androidAutoSemFio === "confirmado";
+    const quem = cp && aa ? "CarPlay e Android Auto" : cp ? "CarPlay" : "Android Auto";
+    return [alvo(v, `${quem} só sem fio: não funciona pela porta USB`, mm.confianca === "nao_confirmado" ? "conferir" : "confirmado", mm.fonteUrl)];
+  });
+
   // 1. Adaptador sem fio: tem CarPlay/Android Auto, mas nenhuma fonte confirma o sem fio em todas as versões.
   const adaptador = veiculos.flatMap((v) => {
     const mm = v.tecnicos?.multimidia;
@@ -162,6 +191,39 @@ export function calcularOportunidades(veiculos: Veiculo[], emplacamentos: Emplac
   };
 
   const oportunidades: Oportunidade[] = [
+    montar(
+      {
+        chave: "streambox",
+        titulo: "Streambox (conexão por cabo)",
+        produto: "Streambox ligado na porta USB do carro, pelo CarPlay ou pelo Android Auto com fio.",
+        oQueE: "Carros em que o CarPlay ou o Android Auto funcionam pelo cabo USB: é por aí que o Streambox se conecta.",
+        comoEscolhemos: "A fonte confirma CarPlay ou Android Auto por cabo USB (manual, tutorial ou página oficial da marca).",
+        aviso: caboSemInfo
+          ? `Outros ${caboSemInfo} modelos têm CarPlay/Android Auto, mas a fonte ainda não diz se funciona por cabo. A pesquisa continua.`
+          : undefined,
+        validar: [
+          "Testar o Streambox na central de cada modelo (versão do sistema da central pode mudar o comportamento)",
+          "Quando a etiqueta for “Algumas versões”, confirmar quais versões têm CarPlay/Android Auto por cabo",
+        ],
+        alvos: streambox,
+      },
+      porCertezaEVendas,
+    ),
+    montar(
+      {
+        chave: "streambox-sem-fio",
+        titulo: "Streambox sem fio (carros que não aceitam cabo)",
+        produto: "Streambox com conexão sem fio, para centrais em que o CarPlay só funciona sem fio.",
+        oQueE: "Carros em que o CarPlay ou o Android Auto só funcionam sem fio: a porta USB não abre o CarPlay, então o Streambox comum não conecta.",
+        comoEscolhemos: "A fonte diz que o CarPlay/Android Auto não funciona pela porta USB e confirma a conexão sem fio.",
+        validar: [
+          "Confirmar no manual brasileiro ou na concessionária (várias fontes destas marcas são de fora do Brasil)",
+          "Testar o pareamento sem fio do Streambox com a central de cada modelo",
+        ],
+        alvos: streamboxSemFio,
+      },
+      porCertezaEVendas,
+    ),
     montar(
       {
         chave: "adaptador-sem-fio",

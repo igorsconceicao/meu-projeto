@@ -4,7 +4,7 @@ import { LogoMontadora } from "@/components/midia/logo-montadora";
 import { FiltrosCatalogo } from "@/components/catalogo/filtros-catalogo";
 import { projecoes, ResumoProjecao, resumoPalhetas } from "@/components/tecnico/conectividade";
 import { normalizar } from "@/lib/busca";
-import { projecaoSemFio, tipoFarol } from "@/lib/classificacao";
+import { conexaoCabo, projecaoSemFio, tipoFarol } from "@/lib/classificacao";
 import { buscarVeiculos } from "@/lib/dados/veiculos";
 import type { Veiculo } from "@/lib/tipos";
 
@@ -32,6 +32,8 @@ function filtrar(lista: Veiculo[], f: Filtros): Veiculo[] {
     if (f.propulsao && v.propulsao !== f.propulsao) return false;
     if (f.conexao === "sem-fio" && projecaoSemFio(v) === "nenhuma") return false;
     if (f.conexao === "so-cabo" && projecaoSemFio(v) !== "nenhuma") return false;
+    if (f.conexao === "cabo" && conexaoCabo(v) !== "cabo") return false;
+    if (f.conexao === "so-sem-fio" && conexaoCabo(v) !== "so-sem-fio") return false;
     if (f.farol && tipoFarol(v) !== f.farol) return false;
     const temPalheta = !!resumoPalhetas(v.tecnicos?.palhetas).dianteira;
     if (f.palhetas === "com" && !temPalheta) return false;
