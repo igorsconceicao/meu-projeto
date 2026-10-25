@@ -67,6 +67,14 @@ const APELIDOS: Record<string, string> = {
   "BMW/220": "bmw-serie-2-gran-coupe",
   "BMW/M235I": "bmw-serie-2-gran-coupe",
   "BMW/I4": "bmw-i4",
+  "HONDA/CITY HATCH": "honda-city-hatchback",
+  "HONDA/CIVIC": "honda-civic-hibrido",
+  "TOYOTA/HILUX SW4": "toyota-sw4",
+  "PORSCHE/BOXSTER": "porsche-718-boxster",
+  "PORSCHE/CAYMAN": "porsche-718-cayman",
+  "CAOA CHERY/TIGGO 8": "chery-tiggo-8-pro",
+  "CAOA CHANGAN/UNIT-T": "changan-uni-t",
+  "KIA/K2500": "kia-bongo",
 };
 
 export function slugsMarca(marca: string): string[] {
