@@ -86,7 +86,8 @@ export function nomeVeiculo(v: Veiculo) {
   const marca = v.marca.toLowerCase();
   const nome = v.nomeComercial.toLowerCase();
   const primeira = marca.split(" ")[0];
-  return nome.startsWith(marca) || nome.startsWith(`${primeira} `) ? v.nomeComercial : `${v.marca} ${v.nomeComercial}`;
+  const jaTemMarca = nome === marca || nome.startsWith(`${marca} `) || nome.startsWith(`${primeira} `);
+  return jaTemMarca ? v.nomeComercial : `${v.marca} ${v.nomeComercial}`;
 }
 
 export function calcularOportunidades(veiculos: Veiculo[], emplacamentos: Emplacamento[]) {

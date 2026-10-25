@@ -209,7 +209,7 @@ Relatório final: tabela `slug | CarPlay (geral/cabo/sem fio) | AA (geral/cabo/s
 - Mercedes-Benz: falta só o GLE.
 - Land Rover: os 6 modelos completos (cabo confirmado pelo suporte do Pivi; sem fio ainda sem fonte por modelo).
 - Audi: Q3 completo; A5 só com tela; faltam A3, A6 e-tron, Q5, Q6 e-tron, Q7, Q8, e-tron GT.
-- **Mais vendidos que não estão no catálogo** (aparecem como "Ainda não cadastrado" na página inicial): VW Virtus, VW Saveiro, Toyota Hilux e a Volvo inteira (XC60 e EX30 estão no top premium). Cadastre-os (rodada 2) e colete multimídia e palhetas.
+- **Mais vendidos que não estão no catálogo** (aparecem como "Ainda não cadastrado" na página inicial): Toyota Hilux, Toyota Corolla, Caoa Chery Tiggo 7 (o catálogo pode ter só o "Tiggo 7 Pro"/"Sport" — confira o nome que a marca usa), VW Jetta, Honda City Hatch e o resto da Volvo (XC40/EX40, XC90). Cadastre-os (rodada 2) e colete multimídia e palhetas. Cadastrados em 25/10: VW Virtus e Saveiro, Volvo XC60 e EX30 (o EX30 ainda sem Android Auto; a Saveiro sem cabo/sem fio; a Volvo bloqueia leitura automática, 403).
 
 ### Vendas por segmento (automático)
 - `interno.atualizar_segmentos_fenabrave()` roda pelo pg_cron nos dias 1 a 15 (11:47 e 13:47 UTC): pede o texto do informativo mais recente e grava em `emplacamentos_segmentos` (fonte 'fenabrave') e `participacao_segmentos`. Se falhar, rode à mão: `select interno.atualizar_segmentos_fenabrave();` (repita depois de alguns minutos).
