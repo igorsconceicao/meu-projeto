@@ -279,7 +279,12 @@ const MARCAS: Record<string, string> = {
 function titulo(s: string) {
   return s
     .split(" ")
-    .map((p) => (/^[A-ZÀ-Ú-]{4,}$/.test(p) || /^[A-ZÀ-Ú]$/.test(p) ? p.charAt(0) + p.slice(1).toLowerCase() : p))
+    .map((p) =>
+      /^[A-ZÀ-Ú-]{4,}$/.test(p) || /^[A-ZÀ-Ú]$/.test(p)
+        ? p.charAt(0) + p.slice(1).toLowerCase()
+        : // Versão com letra no fim, como a marca escreve: "320I" → "320i", "M235I" → "M235i", "500E" → "500e"
+          p.replace(/^([A-Z]?\d{3})([A-Z])$/, (_, n: string, l: string) => n + l.toLowerCase()),
+    )
     .join(" ");
 }
 

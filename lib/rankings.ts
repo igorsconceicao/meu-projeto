@@ -96,6 +96,12 @@ function descreverFonte(linhas: LinhaSegmento[], segmentos: string[]): string {
   ].join(" · ");
 }
 
+/** " em 07/10/2026", a partir da edição gravada ("Bright Consulting (via CarBlog, 07/10/2026)"). */
+function dataPublicacao(edicao: string | null | undefined): string {
+  const data = edicao?.match(/\d{2}\/\d{2}\/\d{4}/)?.[0];
+  return data ? ` em ${data}` : "";
+}
+
 /** Monta os blocos de top 10 do mês, já ligados ao catálogo. */
 export function montarRankings(linhas: LinhaSegmento[], veiculos: Veiculo[], conferencias: Conferencia[] = []): BlocoRanking[] {
   return BLOCOS.map((b) => {
@@ -110,7 +116,7 @@ export function montarRankings(linhas: LinhaSegmento[], veiculos: Veiculo[], con
       titulo: b.titulo,
       explicacao: b.explicacao,
       fonte: premium
-        ? `Bright Consulting · ranking "carros premium mais vendidos" do mês, publicado pelo CarBlog${doBloco[0]?.edicao ? ` (${doBloco[0].edicao})` : ""}`
+        ? `Bright Consulting · ranking "carros premium mais vendidos" do mês, publicado pelo CarBlog${dataPublicacao(doBloco[0]?.edicao)}`
         : descreverFonte(linhas, b.segmentos),
       fonteUrl: doBloco[0]?.fonteUrl ?? null,
       nota: premium

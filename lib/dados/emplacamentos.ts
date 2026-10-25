@@ -75,6 +75,7 @@ const APELIDOS: Record<string, string> = {
   "CAOA CHERY/TIGGO 8": "chery-tiggo-8-pro",
   "CAOA CHANGAN/UNIT-T": "changan-uni-t",
   "KIA/K2500": "kia-bongo",
+  "VW/JETTA": "volkswagen-jetta",
 };
 
 export function slugsMarca(marca: string): string[] {
