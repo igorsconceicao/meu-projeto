@@ -6,6 +6,8 @@
 // POST { acao: "trechos", paginas: [{ id, url, palavras: string[], raio?, max? }] }
 //   → trechos de texto ao redor de cada palavra (ficha técnica, multimídia...).
 //   Aceita também PDFs (fichas técnicas oficiais): o texto é extraído com unpdf.
+// POST { acao: "texto", paginas: [{ id, url, inicio?, tamanho? }] }
+//   → um pedaço contínuo do texto (páginas longas e PDFs, como o informativo da Fenabrave).
 // POST { acao: "commons", consultas: [{ id, termo, limite? }] }
 // POST { acao: "commons-categoria", categorias: [{ id, categoria, limite? }] }
 //   → arquivos do Wikimedia Commons com autor, licença, descrição e categorias.
@@ -232,6 +234,22 @@ async function buscarTrechos(p: { id: string; url: string; palavras: string[]; r
   };
 }
 
+async function buscarTexto(p: { id: string; url: string; inicio?: number; tamanho?: number }) {
+  const r = await baixar(p.url);
+  if ("erro" in r) return { id: p.id, ...r };
+  const texto = r.pdf ? r.html.replace(/\s+/g, " ").trim() : textos(r.html).visivel;
+  const inicio = Math.max(0, p.inicio ?? 0);
+  const tamanho = Math.min(p.tamanho ?? 50_000, 200_000);
+  return {
+    id: p.id,
+    status: r.status,
+    finalUrl: r.finalUrl,
+    tamanhoTexto: texto.length,
+    inicio,
+    texto: texto.slice(inicio, inicio + tamanho),
+  };
+}
+
 function limpar(s: unknown, max: number): string | null {
   if (typeof s !== "string") return null;
   return s.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, max) || null;
@@ -319,6 +337,8 @@ Deno.serve(async (req) => {
     resultado = await emLotes(body.paginas ?? [], 6, buscarPagina);
   } else if (body.acao === "trechos") {
     resultado = await emLotes(body.paginas ?? [], 6, buscarTrechos);
+  } else if (body.acao === "texto") {
+    resultado = await emLotes(body.paginas ?? [], 3, buscarTexto);
   } else if (body.acao === "commons") {
     resultado = await emLotes(body.consultas ?? [], 4, commonsBusca);
   } else if (body.acao === "commons-categoria") {
