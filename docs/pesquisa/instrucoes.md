@@ -1,8 +1,9 @@
 # Instruções de pesquisa do catálogo
 
 Este arquivo é a referência para qualquer rodada de coleta de dados (manual ou
-pela rotina automática quinzenal). Ele acumula as regras das rodadas 1 a 6:
-**a seção "RODADA 6" é a que vale hoje** e prevalece sobre as anteriores.
+pela rotina automática quinzenal). Ele acumula as regras das rodadas 1 a 8:
+**as seções "RODADA 6", "RODADA 7" e "RODADA 8" são as que valem hoje** e
+prevalecem sobre as anteriores.
 Em `consultado_em` e `verificado_br_em` use sempre a data do dia da coleta.
 
 ---
@@ -192,6 +193,28 @@ Por que: a importadora vende o **Streambox**, que se conecta pela porta USB via 
 ~4 a 6 chamadas por veículo, no máximo ~110 no total. Ordem: primeiro os veículos SEM CarPlay/AA identificado, depois cabo/sem fio, depois palhetas. Pule 'volkswagen-tukan' e 'denza-d9' (não vendidos ainda).
 Relatório final: tabela `slug | CarPlay (geral/cabo/sem fio) | AA (geral/cabo/sem fio) | tela | palheta dianteira | palheta traseira | fonte principal | confiança` + até 5 linhas de observações.
 
+## RODADA 8 (2026-10-25) — MARCAS PREMIUM PELOS SITES OFICIAIS E VENDAS POR CLASSE
+
+### Ação nova da função de leitura
+`{"acao":"texto","paginas":[{"id","url","inicio?","tamanho?"}]}` devolve um pedaço contínuo do texto (até 200 mil caracteres) de páginas e PDFs nos domínios aceitos. Use para ler fichas, manuais e o informativo da Fenabrave inteiros, e depois procure com regex no SQL (`content::jsonb->0->>'texto'`).
+
+### O que cada site premium entrega (testado em 25/10/2026)
+- **BMW** (bmw.com.br): a lista oficial `/pt/all-models.html` tem todos os modelos com preço e ano/modelo; o título de cada página traz a geração ("BMW X1 SUV (U11)"). O texto de CarPlay das páginas carrega por JavaScript; a página do X3 M50 diz "Use a integração com smartphone para conectar seu iPhone ou smartphone Android sem fio ao seu BMW." Os comunicados de press.bmwgroup.com/brazil só chegam pelo resultado de busca (marque "(trecho do resultado de busca)", `nao_confirmado`). Cabo: o FAQ oficial da BMW dos EUA (resultado de busca) diz que o CarPlay não funciona pela porta USB → `carplay_cabo = nao_disponivel`, `nao_confirmado`. Imprensa .com.br que republica os comunicados (autoo, car.blog.br, vrum) dá o trecho literal.
+- **Mercedes-Benz**: www2.mercedes-benz.com.br derruba a conexão; use imprensa.mercedes-benz.com.br/releases — as listas de equipamentos trazem "Integração para Smartphones sem fio (Apple CarPlay/Android Auto)" e o tamanho das telas. Comunicado de ano-modelo anterior, mesma geração → `bem_fundamentado`.
+- **Land Rover** (landrover.com.br): ficha em `.../<modelo>/models-and-specifications.html` (lista "Apple CarPlay® | Android Auto™ | Pivi Pro | Tela Touchscreen de X”"); anúncios de estoque em veiculos.landrover.com.br/showroom/... (saem do ar quando o carro é vendido). Cabo: o suporte oficial do Pivi (`/ownership/infotainment-systems/pivi-faqs.html`) diz que as duas portas USB do painel são compatíveis com Apple CarPlay e Android Auto → vale para modelo cuja ficha cita "Pivi Pro".
+- **Audi**: audi.com.br responde 403 a leitura automática. Use imprensa .com.br (ex.: bemparana.com.br) e cite o trecho. "Audi Smartphone Interface, com conexão sem fio" sem citar CarPlay pelo nome não confirma CarPlay.
+
+### Situação em 25/10/2026
+- BMW: cadastrados também Série 1 (M135), Série 4 Cabrio, M2, M3 e M4. Com multimídia: X1, iX1, X3, Série 5, Série 1, Série 4 Cabrio, M4. Faltam CarPlay/AA de X2, iX2, iX3, X5, X6, X7, Série 2 Gran Coupé, Série 3, i4, i7, M2, M3. O site mostra também o novo X5 (G65) e o iX5 (sem preço) — cadastrar quando tiverem preço.
+- Mercedes-Benz: falta só o GLE.
+- Land Rover: os 6 modelos completos (cabo confirmado pelo suporte do Pivi; sem fio ainda sem fonte por modelo).
+- Audi: Q3 completo; A5 só com tela; faltam A3, A6 e-tron, Q5, Q6 e-tron, Q7, Q8, e-tron GT.
+- **Mais vendidos que não estão no catálogo** (aparecem como "Ainda não cadastrado" na página inicial): VW Virtus, VW Saveiro, Toyota Hilux e a Volvo inteira (XC60 e EX30 estão no top premium). Cadastre-os (rodada 2) e colete multimídia e palhetas.
+
+### Vendas por segmento (automático)
+- `interno.atualizar_segmentos_fenabrave()` roda pelo pg_cron nos dias 1 a 15 (11:47 e 13:47 UTC): pede o texto do informativo mais recente e grava em `emplacamentos_segmentos` (fonte 'fenabrave') e `participacao_segmentos`. Se falhar, rode à mão: `select interno.atualizar_segmentos_fenabrave();` (repita depois de alguns minutos).
+- **Ranking premium** (manual, uma vez por mês): a Bright Consulting divulga "carros e marcas premium mais vendidos"; o CarBlog publica a tabela (ex.: https://www.car.blog.br/2026/10/carros-e-marcas-premium-mais-vendidos.html). Grave em `emplacamentos_segmentos` com `fonte = 'bright_consulting'`, `grupo = 'Premium'`, `segmento = 'Premium — modelos'` (modelo) ou `'Premium — marcas'` (modelo = ''), `unidades` do mês, `participacao` = market share, `fonte_url` = página lida, `edicao` = 'Bright Consulting (via CarBlog, dd/mm/aaaa)'. Marca e modelo como na tabela (ex.: 'M.BENZ', 'GLC 300').
+
 ---
 
 ## ROTINA QUINZENAL (automática, dias 2 e 16 de cada mês)
@@ -203,7 +226,9 @@ A rotina roda numa sessão nova, sem memória das anteriores. Passos:
    Para cada um que seja de fato um modelo novo vendido no Brasil (não versão, campanha ou página institucional), cadastre o veículo (template da rodada 2, foto opcional) e colete multimídia e palhetas (rodada 6). Depois marque a novidade:
    `insert into monitor_novidades (id, tipo, titulo, url) select id, tipo, titulo, url from monitor_novidades where id = '<id>' on conflict (id) do update set status = 'resolvido', resolvido_em = now();`
    (ou `status = 'ignorado'` quando não for modelo). Novidades `link_removido`/`pagina_fora_do_ar` ficam para revisão humana.
-2. **Lacunas de dados (prioridade do usuário).** Escolha até 25 veículos, nesta ordem: sem CarPlay/Android Auto identificado (inclui as marcas premium cadastradas em 25/10); sem informação de sem fio; sem informação de cabo (Streambox — siga a RODADA 7); sem palhetas ou sem OEM de palheta.
+0. **Vendas do mês (na execução do dia 2 e, se faltar, na do dia 16).** Confira `select periodo, count(*) from emplacamentos_segmentos group by 1 order by 1 desc limit 2;`. Se o mês mais recente de `emplacamentos` ainda não tem segmentos, rode `select interno.atualizar_segmentos_fenabrave();` (duas vezes, com alguns minutos entre elas). Se o ranking premium do mês (`fonte = 'bright_consulting'`) ainda não existe, procure a publicação da Bright Consulting e grave (RODADA 8).
+1b. **Mais vendidos fora do catálogo.** Cadastre os modelos do top 10 de cada categoria da página inicial que ainda não estão no catálogo (lista atual na RODADA 8).
+2. **Lacunas de dados (prioridade do usuário: zerar as pendências).** Escolha até 25 veículos, nesta ordem: sem CarPlay/Android Auto identificado (inclui as marcas premium); sem informação de sem fio; sem informação de cabo (Streambox — siga a RODADA 7); sem palhetas ou sem OEM de palheta. Comece pelos mais vendidos. Além dos sites oficiais e da imprensa, procure em fóruns de donos, vídeos do YouTube (título e descrição) e no Google; esses valem só como `nao_confirmado`, com o link e o trecho, marcados "(fórum)", "(vídeo)" ou "(trecho do resultado de busca)". Na execução seguinte, tente trocar uma fonte `nao_confirmado` por uma oficial.
    `select v.slug, m.carplay, m.android_auto, m.carplay_cabo, m.carplay_sem_fio, m.android_auto_cabo, m.android_auto_sem_fio, m.tela_polegadas, (select count(*) from palhetas p where p.veiculo_id = v.id) as palhetas from veiculos v left join multimidias m on m.veiculo_id = v.id where v.situacao <> 'Descontinuado' order by (m.veiculo_id is null or m.carplay = 'nao_identificado' or m.android_auto = 'nao_identificado') desc, (m.carplay_sem_fio = 'nao_identificado' and m.android_auto_sem_fio = 'nao_identificado') desc, (m.carplay_cabo = 'nao_identificado' and m.android_auto_cabo = 'nao_identificado') desc, (select count(*) from palhetas p where p.veiculo_id = v.id) asc limit 25;`
    Pesquise e grave seguindo a RODADA 6 (fonte com link e trecho, confiança conforme o tipo de fonte, nunca deduzir).
 3. **Limites.** No máximo ~150 chamadas de ferramenta. Nunca UPDATE/DELETE (use `insert ... on conflict`). Não mexa em código do site.
