@@ -1,9 +1,13 @@
-// Oportunidades para o laboratório, calculadas com regras transparentes a
-// partir do catálogo técnico (dados com fonte) e do ranking de emplacamentos.
-// Nenhum número é estimado: cada item mostra o critério e a evidência.
-import { projecaoSemFio, tipoFarol } from "@/lib/classificacao";
+// Oportunidades para o laboratório, calculadas com regras simples a partir do
+// catálogo técnico (dados com fonte) e do ranking de emplacamentos da Fenabrave.
+// Nenhum número é estimado: as vendas são as publicadas e cada dado do carro tem fonte.
+import { farolPorVersao, tipoFarol } from "@/lib/classificacao";
 import { ligarAoCatalogo, type Emplacamento } from "@/lib/dados/emplacamentos";
-import type { Veiculo } from "@/lib/tipos";
+import { chavePalhetas } from "@/lib/palhetas";
+import type { EstadoConectividade, Veiculo } from "@/lib/tipos";
+
+/** Quão firme é a oportunidade no modelo: a fonte confirma, vale só para parte das versões, ou falta confirmar. */
+export type Certeza = "confirmado" | "parcial" | "conferir";
 
 export type Alvo = {
   veiculo?: Veiculo;
@@ -11,24 +15,27 @@ export type Alvo = {
   vendasAno: number | null;
   /** Preenchido quando as vendas são da família inteira (ex.: "OMODA 5" para o Omoda 5 SHS-H). */
   vendasFamilia?: string;
-  evidencia: string | null;
+  /** O que o carro tem hoje, em poucas palavras. */
+  situacao: string;
+  certeza: Certeza;
   fonteUrl: string | null;
 };
+
+export type GrupoMedida = { medida: string; alvos: Alvo[]; vendas: number; aConferir: boolean };
 
 export type Oportunidade = {
   chave: string;
   titulo: string;
-  porQue: string;
-  criterio: string;
+  /** O que a importadora venderia. */
+  produto: string;
+  oQueE: string;
+  comoEscolhemos: string;
   validar: string[];
   alvos: Alvo[];
+  /** Soma dos emplacamentos no ano dos modelos que estão no ranking. */
+  vendasTotal: number;
+  grupos?: { titulo: string; descricao: string; itens: GrupoMedida[] }[];
 };
-
-function resumo(s: string | null | undefined, max = 220): string | null {
-  if (!s) return null;
-  const t = s.replace(/\s+/g, " ").trim();
-  return t.length > max ? `${t.slice(0, max)}…` : t;
-}
 
 /** Vendas acumuladas no ano (último informativo) por id de veículo do catálogo. */
 function vendasPorVeiculo(emplacamentos: Emplacamento[], veiculos: Veiculo[]) {
@@ -50,109 +57,190 @@ function vendasPorVeiculo(emplacamentos: Emplacamento[], veiculos: Veiculo[]) {
   return { mapa, periodo: ultimo, ranking };
 }
 
+const ORDEM_CERTEZA: Record<Certeza, number> = { confirmado: 0, parcial: 1, conferir: 2 };
+const porVendas = (a: Alvo, b: Alvo) => (b.vendasAno ?? -1) - (a.vendasAno ?? -1) || a.nome.localeCompare(b.nome);
+/** Primeiro o que a fonte confirma, depois o mais vendido. */
+const porCertezaEVendas = (a: Alvo, b: Alvo) => ORDEM_CERTEZA[a.certeza] - ORDEM_CERTEZA[b.certeza] || porVendas(a, b);
+const somaVendas = (alvos: Alvo[]) => alvos.reduce((s, a) => s + (a.vendasAno ?? 0), 0);
+const temProjecao = (e: EstadoConectividade | undefined) => e === "confirmado" || e === "depende_versao";
+
+function agrupar(itens: { alvo: Alvo; medida: string | null }[]): GrupoMedida[] {
+  const grupos = new Map<string, Alvo[]>();
+  for (const { alvo, medida } of itens) {
+    if (medida) grupos.set(medida, [...(grupos.get(medida) ?? []), alvo]);
+  }
+  return [...grupos.entries()]
+    .map(([medida, alvos]) => ({
+      medida,
+      alvos: alvos.sort(porVendas),
+      vendas: somaVendas(alvos),
+      aConferir: alvos.some((a) => a.certeza === "conferir"),
+    }))
+    .sort((a, b) => b.vendas - a.vendas || b.alvos.length - a.alvos.length);
+}
+
 export function calcularOportunidades(veiculos: Veiculo[], emplacamentos: Emplacamento[]) {
   const { mapa: vendas, periodo, ranking } = vendasPorVeiculo(emplacamentos, veiculos);
-  const ordenar = (a: Alvo, b: Alvo) => (b.vendasAno ?? -1) - (a.vendasAno ?? -1) || a.nome.localeCompare(b.nome);
-  const alvo = (v: Veiculo, evidencia: string | null | undefined, fonteUrl: string | null | undefined): Alvo => ({
+  const alvo = (v: Veiculo, situacao: string, certeza: Certeza, fonteUrl: string | null | undefined): Alvo => ({
     veiculo: v,
     nome: `${v.marca} ${v.nomeComercial}`,
     vendasAno: vendas.get(v.id)?.unidades ?? null,
     vendasFamilia: vendas.get(v.id)?.familia,
-    evidencia: resumo(evidencia),
+    situacao,
+    certeza,
     fonteUrl: fonteUrl ?? null,
   });
 
-  const comCentral = veiculos.filter((v) => {
+  // 1. Adaptador sem fio: tem CarPlay/Android Auto, mas nenhuma fonte confirma o sem fio em todas as versões.
+  const adaptador = veiculos.flatMap((v) => {
     const mm = v.tecnicos?.multimidia;
-    return mm && (mm.carplay !== "nao_identificado" || mm.androidAuto !== "nao_identificado");
+    if (!mm || !(temProjecao(mm.carplay) || temProjecao(mm.androidAuto))) return [];
+    const semFio = [mm.carplaySemFio, mm.androidAutoSemFio];
+    if (semFio.includes("confirmado")) return [];
+    if (semFio.includes("depende_versao")) {
+      return [alvo(v, "Sem fio só em algumas versões; as outras usam cabo", "parcial", mm.fonteUrl)];
+    }
+    const cpCabo = mm.carplaySemFio === "nao_disponivel";
+    const aaCabo = mm.androidAutoSemFio === "nao_disponivel";
+    if (cpCabo || aaCabo) {
+      const quem = cpCabo && aaCabo ? "CarPlay e Android Auto" : cpCabo ? "CarPlay" : "Android Auto";
+      return [alvo(v, `${quem} só funciona com cabo`, "confirmado", mm.fonteUrl)];
+    }
+    const cabo = mm.carplayCabo === "confirmado" || mm.androidAutoCabo === "confirmado";
+    return [alvo(v, cabo ? "Funciona com cabo; a fonte não diz se há sem fio" : "A fonte não diz se há sem fio", "conferir", mm.fonteUrl)];
   });
 
+  // 2. Palhetas: todo carro com medida conhecida, agrupado pelo jogo dianteiro e pela traseira.
+  const palhetas = veiculos.flatMap((v) => {
+    const k = chavePalhetas(v.tecnicos?.palhetas);
+    if (!k.dianteira && !k.traseira) return [];
+    const aConferir = k.usadas.some((p) => p.confianca === "nao_confirmado");
+    const situacao = [k.dianteira ? `Dianteira ${k.dianteira}` : null, k.traseira ? `traseira ${k.traseira}` : null]
+      .filter(Boolean)
+      .join(" · ");
+    return [{ alvo: alvo(v, situacao, aConferir ? "conferir" : "confirmado", k.usadas[0]?.fonteUrl), k }];
+  });
+  const jogoCompleto = (d: string | null) => (d && !/^(motorista|passageiro)/.test(d) ? d : null);
+
+  // 3. Central multimídia: CarPlay/Android Auto só em algumas versões, ou ausente de fábrica.
+  const central = veiculos.flatMap((v) => {
+    const mm = v.tecnicos?.multimidia;
+    if (!mm) return [];
+    const estados = [mm.carplay, mm.androidAuto];
+    if (estados.includes("depende_versao")) {
+      return [alvo(v, "CarPlay/Android Auto só em algumas versões", "parcial", mm.fonteUrl)];
+    }
+    const semCp = mm.carplay === "nao_disponivel";
+    const semAa = mm.androidAuto === "nao_disponivel";
+    if (!semCp && !semAa) return [];
+    const falta = semCp && semAa ? "Não tem CarPlay nem Android Auto" : semCp ? "Não tem CarPlay" : "Não tem Android Auto";
+    return [alvo(v, falta, "confirmado", mm.fonteUrl)];
+  });
+
+  // 4. Lâmpadas: farol halógeno em todas ou em parte das versões.
+  const lampadas = veiculos.flatMap((v) => {
+    const farois = v.tecnicos?.iluminacao.filter((i) => /farol/i.test(i.posicao)) ?? [];
+    const halogenos = farois.filter((i) => /hal[oó]gen/i.test(i.tecnologia ?? "") || /hal[oó]gen/i.test(i.versoes ?? ""));
+    if (!halogenos.length && tipoFarol(v) !== "halogeno") return [];
+    const parcial = farolPorVersao(v) === "misto" || halogenos.some((i) => /hal[oó]gen/i.test(i.versoes ?? ""));
+    const codigos = [...new Set(halogenos.map((i) => i.codigo).filter(Boolean))].join(" / ");
+    const situacao = `${parcial ? "Halógeno em parte das versões" : "Farol halógeno"} · ${codigos ? `lâmpada ${codigos}` : "código da lâmpada a confirmar"}`;
+    return [alvo(v, situacao, parcial ? "parcial" : "confirmado", (halogenos[0] ?? farois[0])?.fonteUrl)];
+  });
+
+  const montar = (o: Omit<Oportunidade, "vendasTotal">, ordem: (a: Alvo, b: Alvo) => number): Oportunidade => {
+    const alvos = [...o.alvos].sort(ordem);
+    return { ...o, alvos, vendasTotal: somaVendas(alvos) };
+  };
+
   const oportunidades: Oportunidade[] = [
-    {
-      chave: "adaptador-sem-fio",
-      titulo: "Adaptador de CarPlay / Android Auto sem fio",
-      porQue:
-        "Modelos com CarPlay ou Android Auto confirmados, mas sem projeção sem fio confirmada pela montadora: o dono depende do cabo e pode querer um adaptador sem fio.",
-      criterio: "Central com CarPlay ou Android Auto confirmado e nenhuma versão com projeção sem fio confirmada.",
-      validar: [
-        "Confirmar no manual do proprietário que a conexão é só por cabo (a fonte pode apenas não citar)",
-        "Testar compatibilidade do adaptador com a central de cada modelo",
-      ],
-      alvos: comCentral
-        .filter((v) => projecaoSemFio(v) === "nenhuma")
-        .map((v) => alvo(v, v.tecnicos?.multimidia?.evidencia, v.tecnicos?.multimidia?.fonteUrl))
-        .sort(ordenar),
-    },
-    {
-      chave: "sem-fio-parcial",
-      titulo: "Versões de entrada sem projeção sem fio",
-      porQue:
-        "A montadora oferece CarPlay/Android Auto sem fio só em algumas versões: as versões de entrada tendem a ser só por cabo — público para adaptador ou central de reposição.",
-      criterio: "Projeção sem fio marcada como “depende da versão”.",
-      validar: ["Identificar quais versões ficam só com cabo", "Volume de vendas por versão (não informado pela Fenabrave)"],
-      alvos: comCentral
-        .filter((v) => projecaoSemFio(v) === "algumas")
-        .map((v) => alvo(v, v.tecnicos?.multimidia?.evidencia, v.tecnicos?.multimidia?.fonteUrl))
-        .sort(ordenar),
-    },
-    {
-      chave: "iluminacao-led",
-      titulo: "Iluminação: faróis halógenos em alguma versão",
-      porQue:
-        "Modelos em que a montadora ainda usa farol halógeno (em todas ou em parte das versões): demanda por lâmpadas de reposição de maior desempenho.",
-      criterio: "Farol principal informado como halógeno, ou halógeno citado nas versões.",
-      validar: [
-        "Código da lâmpada (H4, H7...) no manual do proprietário",
-        "Regras de homologação para troca de tecnologia de farol (Contran/Inmetro)",
-      ],
-      alvos: veiculos
-        .filter((v) =>
-          v.tecnicos?.iluminacao.some(
-            (i) => /farol/i.test(i.posicao) && (/hal[oó]gen/i.test(i.tecnologia ?? "") || /hal[oó]gen/i.test(i.versoes ?? "")),
-          ) || tipoFarol(v) === "halogeno",
-        )
-        .map((v) => {
-          const f = v.tecnicos?.iluminacao.find((i) => /farol/i.test(i.posicao));
-          return alvo(v, [f?.tecnologia, f?.versoes].filter(Boolean).join(" — ") || f?.evidencia, f?.fonteUrl);
-        })
-        .sort(ordenar),
-    },
-    {
-      chave: "central-versoes",
-      titulo: "Central multimídia para versões sem CarPlay/Android Auto",
-      porQue:
-        "A montadora só oferece CarPlay/Android Auto em algumas versões: as demais podem receber central multimídia de reposição.",
-      criterio: "CarPlay ou Android Auto marcado como “depende da versão”.",
-      validar: ["Quais versões não têm a central", "Moldura e chicote compatíveis com o painel"],
-      alvos: veiculos
-        .filter((v) => {
-          const mm = v.tecnicos?.multimidia;
-          return mm && (mm.carplay === "depende_versao" || mm.androidAuto === "depende_versao");
-        })
-        .map((v) => alvo(v, v.tecnicos?.multimidia?.evidencia, v.tecnicos?.multimidia?.fonteUrl))
-        .sort(ordenar),
-    },
-    {
-      chave: "lacunas",
-      titulo: "Mais vendidos ainda sem ficha completa",
-      porQue:
-        "Modelos do ranking de vendas que ainda não estão publicados no catálogo técnico: prioridade de coleta de dados (manual do proprietário, catálogo de peças).",
-      criterio: "Entre os 50 automóveis e os 50 comerciais leves mais emplacados no ano, ainda fora da lista (sem CarPlay/Android Auto identificado) ou não cadastrados.",
-      validar: ["Acesso ao site oficial da marca (algumas bloqueiam leitura automática)", "Manual do proprietário em PDF"],
-      alvos: ranking
-        .filter((r) => !r.veiculo?.completude?.publicavel)
-        .map((r) => ({
-          veiculo: r.veiculo,
-          nome: `${r.marca}/${r.modelo}`,
-          vendasAno: r.unidades,
-          evidencia: r.veiculo
-            ? `Cadastrado, falta: ${r.veiculo.completude?.obrigatorios.filter((i) => !i.ok).map((i) => i.rotulo.toLowerCase()).join(", ")}`
-            : "Ainda não cadastrado no catálogo",
-          fonteUrl: r.fonteUrl,
-        }))
-        .sort(ordenar),
-    },
+    montar(
+      {
+        chave: "adaptador-sem-fio",
+        titulo: "Adaptador de CarPlay / Android Auto sem fio",
+        produto: "Adaptador sem fio que liga na porta USB do carro e conecta o celular sozinho, sem cabo.",
+        oQueE: "Carros que já têm CarPlay ou Android Auto, mas em que o celular precisa ficar ligado no cabo.",
+        comoEscolhemos: "Tem CarPlay ou Android Auto de fábrica e nenhuma fonte confirma a conexão sem fio em todas as versões.",
+        validar: [
+          "Quando a etiqueta for “Conferir”, ver no manual se a conexão é mesmo só por cabo",
+          "Testar o adaptador na central de cada modelo (compatibilidade varia)",
+        ],
+        alvos: adaptador,
+      },
+      porCertezaEVendas,
+    ),
+    montar(
+      {
+        chave: "palhetas",
+        titulo: "Palhetas de reposição",
+        produto: "Palhetas dianteiras (jogo motorista + passageiro) e traseiras nas medidas mais usadas.",
+        oQueE: "Palheta é peça de troca periódica em qualquer carro. Saber as medidas dos carros que mais vendem mostra quais tamanhos estocar primeiro.",
+        comoEscolhemos: "Todo carro do catálogo com medida de palheta informada por catálogo de fabricante de palhetas, manual ou loja.",
+        validar: [
+          "Quando a etiqueta for “Conferir”, a medida veio de loja ou de catálogo que não cita o ano atual",
+          "Conferir o tipo de encaixe do braço de cada modelo (está na ficha quando a fonte informa)",
+        ],
+        alvos: palhetas.map((p) => p.alvo),
+        grupos: [
+          {
+            titulo: "Jogos dianteiros mais usados",
+            descricao: "Carros que usam o mesmo par de palhetas (motorista + passageiro).",
+            itens: agrupar(palhetas.map((p) => ({ alvo: p.alvo, medida: jogoCompleto(p.k.dianteira) }))),
+          },
+          {
+            titulo: "Palhetas traseiras mais usadas",
+            descricao: "Carros com limpador traseiro e a medida da palheta.",
+            itens: agrupar(palhetas.map((p) => ({ alvo: p.alvo, medida: p.k.traseira }))),
+          },
+        ],
+      },
+      porVendas,
+    ),
+    montar(
+      {
+        chave: "central-multimidia",
+        titulo: "Central multimídia de reposição",
+        produto: "Central multimídia com CarPlay e Android Auto para as versões que saem de fábrica sem eles.",
+        oQueE: "Carros em que só algumas versões têm CarPlay/Android Auto, ou que não têm de fábrica.",
+        comoEscolhemos: "CarPlay ou Android Auto marcado como “só em algumas versões” ou “não tem” pela fonte.",
+        validar: [
+          "Quais versões saem sem a central (ver a ficha de versões da montadora)",
+          "Se o painel aceita troca: telas grandes integradas, como em vários elétricos, não permitem",
+          "Moldura e chicote compatíveis com o painel",
+        ],
+        alvos: central,
+      },
+      porCertezaEVendas,
+    ),
+    montar(
+      {
+        chave: "lampadas",
+        titulo: "Lâmpadas para faróis halógenos",
+        produto: "Lâmpadas halógenas de maior rendimento (e LED, onde a lei permitir) para o farol principal.",
+        oQueE: "Carros que ainda usam farol halógeno em todas ou em parte das versões.",
+        comoEscolhemos: "Farol principal informado como halógeno pela fonte, em todas ou em algumas versões.",
+        validar: [
+          "Código da lâmpada (H4, H7...) no manual quando estiver “a confirmar”",
+          "Regras de homologação para trocar a tecnologia do farol (Contran/Inmetro)",
+        ],
+        alvos: lampadas,
+      },
+      porCertezaEVendas,
+    ),
   ];
 
-  return { oportunidades, periodoVendas: periodo };
+  // Mais vendidos que ainda não dá para avaliar (sem CarPlay/Android Auto identificado ou não cadastrados).
+  const semDados: Alvo[] = ranking
+    .filter((r) => !r.veiculo?.completude?.publicavel)
+    .map((r) => ({
+      veiculo: r.veiculo,
+      nome: `${r.marca}/${r.modelo}`,
+      vendasAno: r.unidades,
+      situacao: r.veiculo ? "Cadastrado, mas CarPlay/Android Auto ainda sem fonte" : "Ainda não cadastrado",
+      certeza: "conferir" as const,
+      fonteUrl: r.fonteUrl,
+    }))
+    .sort(porVendas);
+
+  return { oportunidades, semDados, periodoVendas: periodo };
 }

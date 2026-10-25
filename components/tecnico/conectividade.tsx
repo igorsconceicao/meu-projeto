@@ -1,5 +1,5 @@
 import { Check, CircleHelp, Layers, Minus } from "lucide-react";
-import type { EstadoConectividade, Multimidia, Palheta } from "@/lib/tipos";
+import type { EstadoConectividade, Multimidia } from "@/lib/tipos";
 import { cn } from "@/lib/utils";
 
 const ESTILO: Record<EstadoConectividade, { rotulo: string; classe: string; Icone: typeof Check }> = {
@@ -61,30 +61,4 @@ export function projecoes(mm: Multimidia | null | undefined) {
   } as const;
 }
 
-function medida(p: Palheta): string | null {
-  if (p.medidaPol && p.medidaMm) return `${p.medidaPol}" (${p.medidaMm} mm)`;
-  if (p.medidaPol) return `${p.medidaPol}"`;
-  if (p.medidaMm) return `${p.medidaMm} mm`;
-  return null;
-}
-
-/**
- * Medidas das palhetas em texto curto: dianteiras (motorista + passageiro) e traseira.
- * Quando só um lado tem medida, o lado é escrito, para não parecer o jogo completo.
- */
-export function resumoPalhetas(palhetas: Palheta[] | undefined) {
-  const lista = palhetas ?? [];
-  const achar = (re: RegExp) => lista.find((p) => /diant/i.test(p.posicao) && re.test(p.posicao) && medida(p));
-  const motorista = achar(/motor/i);
-  const passageiro = achar(/passag/i);
-  const outraDianteira = lista.find((p) => /diant/i.test(p.posicao) && !/motor|passag/i.test(p.posicao) && medida(p));
-  const traseira = lista.find((p) => /tras/i.test(p.posicao) && medida(p));
-
-  let dianteira: string | null = null;
-  if (motorista && passageiro) dianteira = `${medida(motorista)} + ${medida(passageiro)}`;
-  else if (motorista) dianteira = `motorista ${medida(motorista)}`;
-  else if (passageiro) dianteira = `passageiro ${medida(passageiro)}`;
-  else if (outraDianteira) dianteira = medida(outraDianteira);
-
-  return { dianteira, traseira: traseira ? medida(traseira) : null };
-}
+export { resumoPalhetas } from "@/lib/palhetas";
