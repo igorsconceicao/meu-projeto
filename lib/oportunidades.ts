@@ -79,11 +79,19 @@ function agrupar(itens: { alvo: Alvo; medida: string | null }[]): GrupoMedida[] 
     .sort((a, b) => b.vendas - a.vendas || b.alvos.length - a.alvos.length);
 }
 
+/** "Geely EX2" em vez de "Geely Geely EX2" quando o nome comercial já traz a marca. */
+function nomeVeiculo(v: Veiculo) {
+  const marca = v.marca.toLowerCase();
+  const nome = v.nomeComercial.toLowerCase();
+  const primeira = marca.split(" ")[0];
+  return nome.startsWith(marca) || nome.startsWith(`${primeira} `) ? v.nomeComercial : `${v.marca} ${v.nomeComercial}`;
+}
+
 export function calcularOportunidades(veiculos: Veiculo[], emplacamentos: Emplacamento[]) {
   const { mapa: vendas, periodo, ranking } = vendasPorVeiculo(emplacamentos, veiculos);
   const alvo = (v: Veiculo, situacao: string, certeza: Certeza, fonteUrl: string | null | undefined): Alvo => ({
     veiculo: v,
-    nome: `${v.marca} ${v.nomeComercial}`,
+    nome: nomeVeiculo(v),
     vendasAno: vendas.get(v.id)?.unidades ?? null,
     vendasFamilia: vendas.get(v.id)?.familia,
     situacao,

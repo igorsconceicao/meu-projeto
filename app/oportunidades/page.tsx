@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowDown, ExternalLink, Lightbulb, MonitorSmartphone, Wifi, Wind } from "lucide-react";
+import { ArrowDown, Lightbulb, MonitorSmartphone, Wifi, Wind } from "lucide-react";
 import { CabecalhoPagina } from "@/components/layout/cabecalho-pagina";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,8 +75,8 @@ function LinhaModelo({ a }: { a: Alvo }) {
         <Etiqueta certeza={a.certeza} />
         <span>{a.situacao}</span>
         {a.fonteUrl ? (
-          <a href={a.fonteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-xs text-primary hover:underline">
-            fonte <ExternalLink className="h-3 w-3" />
+          <a href={a.fonteUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+            fonte ↗
           </a>
         ) : null}
       </div>
@@ -303,17 +303,33 @@ export default async function PaginaOportunidades() {
         <section className="rounded-xl border bg-card p-5 text-sm">
           <p className="font-medium">Mais vendidos que ainda não dá para avaliar</p>
           <p className="mt-1 text-muted-foreground">
-            Estão entre os mais emplacados, mas ainda não temos fonte sobre CarPlay/Android Auto, por isso ficam fora das listas acima.
-            A pesquisa automática tenta de novo a cada 15 dias.
+            Estão entre os mais emplacados, mas ainda faltam dados no catálogo, por isso ficam fora das listas acima.
           </p>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {semDados.map((a) => (
-              <li key={a.nome} className="rounded-full border px-3 py-1">
-                <NomeModelo a={a} />{" "}
-                <span className="text-xs text-muted-foreground tabular-nums">{a.vendasAno !== null ? formatarNumero(a.vendasAno) : ""}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-3 grid gap-4 md:grid-cols-2">
+            {[
+              { titulo: "Ainda não cadastrados no catálogo", itens: semDados.filter((a) => !a.veiculo) },
+              { titulo: "Cadastrados, mas sem fonte de CarPlay/Android Auto", itens: semDados.filter((a) => a.veiculo) },
+            ]
+              .filter((g) => g.itens.length)
+              .map((g) => (
+                <div key={g.titulo}>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{g.titulo}</p>
+                  <ul className="mt-2 flex flex-wrap gap-2">
+                    {g.itens.slice(0, 12).map((a) => (
+                      <li key={a.nome} className="rounded-full border px-3 py-1">
+                        <NomeModelo a={a} />{" "}
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {a.vendasAno !== null ? formatarNumero(a.vendasAno) : ""}
+                        </span>
+                      </li>
+                    ))}
+                    {g.itens.length > 12 ? (
+                      <li className="px-1 py-1 text-xs text-muted-foreground">e mais {g.itens.length - 12} com menos vendas</li>
+                    ) : null}
+                  </ul>
+                </div>
+              ))}
+          </div>
         </section>
       ) : null}
 
