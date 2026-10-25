@@ -33,6 +33,8 @@ export type LinhaSegmento = Emplacamento & {
   unidadesMesAnterior: number | null;
   acumuladoAno: number | null;
   participacao: number | null;
+  /** Página do informativo onde está a tabela (Fenabrave). */
+  pagina: number | null;
 };
 
 export type ParticipacaoSegmento = {
@@ -56,6 +58,17 @@ type Linha = {
   participacao: number | null;
   fonte_url: string;
   edicao: string | null;
+  pagina: number | null;
+};
+
+/** Matéria da imprensa que confere os números de um bloco do ranking. */
+export type Conferencia = {
+  bloco: string;
+  fonteNome: string;
+  url: string;
+  trecho: string;
+  resultado: "igual" | "diferente";
+  observacao: string | null;
 };
 
 /** Rankings por segmento (Fenabrave) e premium (Bright Consulting) do mês mais recente. */
@@ -63,6 +76,7 @@ export async function buscarSegmentos(): Promise<{
   periodo: string | null;
   linhas: LinhaSegmento[];
   participacao: ParticipacaoSegmento[];
+  conferencias: Conferencia[];
 }> {
   const supabase = await criarClienteSupabaseServidor();
   const validos = [...SEGMENTOS_FENABRAVE, PREMIUM_MODELOS, PREMIUM_MARCAS];
@@ -74,12 +88,12 @@ export async function buscarSegmentos(): Promise<{
     .maybeSingle();
   if (e1) throw e1;
   const periodo = (ultimo as { periodo: string } | null)?.periodo ?? null;
-  if (!periodo) return { periodo: null, linhas: [], participacao: [] };
+  if (!periodo) return { periodo: null, linhas: [], participacao: [], conferencias: [] };
 
-  const [linhas, part] = await Promise.all([
+  const [linhas, part, conf] = await Promise.all([
     supabase
       .from("emplacamentos_segmentos")
-      .select("periodo, fonte, grupo, segmento, posicao, marca, modelo, unidades, unidades_mes_anterior, acumulado_ano, participacao, fonte_url, edicao")
+      .select("periodo, fonte, grupo, segmento, posicao, marca, modelo, unidades, unidades_mes_anterior, acumulado_ano, participacao, fonte_url, edicao, pagina")
       .eq("periodo", periodo)
       .in("segmento", validos),
     supabase
@@ -87,9 +101,14 @@ export async function buscarSegmentos(): Promise<{
       .select("segmento, participacao_mes, participacao_mes_anterior, fonte_url")
       .eq("periodo", periodo)
       .in("segmento", validos),
+    supabase
+      .from("conferencias_ranking")
+      .select("bloco, fonte_nome, url, trecho, resultado, observacao")
+      .eq("periodo", periodo),
   ]);
   if (linhas.error) throw linhas.error;
   if (part.error) throw part.error;
+  if (conf.error) throw conf.error;
 
   return {
     periodo,
@@ -108,9 +127,13 @@ export async function buscarSegmentos(): Promise<{
       acumuladoAno: r.acumulado_ano,
       participacao: r.participacao === null ? null : Number(r.participacao),
       segmentoFonte: r.segmento,
+      pagina: r.pagina,
     })),
     participacao: (
       (part.data ?? []) as { segmento: string; participacao_mes: number; participacao_mes_anterior: number | null; fonte_url: string }[]
     ).map((p) => ({ segmento: p.segmento, mes: Number(p.participacao_mes), mesAnterior: p.participacao_mes_anterior === null ? null : Number(p.participacao_mes_anterior), fonteUrl: p.fonte_url })),
+    conferencias: (
+      (conf.data ?? []) as { bloco: string; fonte_nome: string; url: string; trecho: string; resultado: Conferencia["resultado"]; observacao: string | null }[]
+    ).map((c) => ({ bloco: c.bloco, fonteNome: c.fonte_nome, url: c.url, trecho: c.trecho, resultado: c.resultado, observacao: c.observacao })),
   };
 }

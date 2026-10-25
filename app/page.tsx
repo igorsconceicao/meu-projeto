@@ -50,8 +50,10 @@ export default async function PaginaInicio() {
         chave: "geral",
         titulo: "Geral",
         explicacao: "Todos os carros e picapes juntos.",
-        fonte: "Fenabrave",
+        fonte: `Fenabrave · Informativo de Emplacamentos nº ${emplacamentos.find((e) => e.periodo === ultimoMes)?.edicao ?? "—"} · tabelas "Ranking dos emplacamentos em ${nomeMes(ultimoMes).replace(" de ", "/").replace(/^./, (c) => c.toUpperCase())}" de Automóveis e de Comerciais Leves`,
         fonteUrl: emplacamentos.find((e) => e.periodo === ultimoMes)?.fonteUrl ?? null,
+        nota: "Juntamos as duas listas (a Strada é comercial leve) e ordenamos pelas vendas do mês.",
+        conferencias: segmentos.conferencias.filter((c) => c.bloco === "geral"),
         itens: ligarAoCatalogo(
           emplacamentos
             .filter((e) => e.tipo === "mensal" && e.periodo === ultimoMes)
@@ -62,7 +64,7 @@ export default async function PaginaInicio() {
         ),
       }
     : null;
-  const blocos = [...(geral ? [geral] : []), ...montarRankings(segmentos.linhas, todos)];
+  const blocos = [...(geral ? [geral] : []), ...montarRankings(segmentos.linhas, todos, segmentos.conferencias)];
   const classes = resumoPorClasse(segmentos.participacao, segmentos.linhas);
   const lideres = new Map(
     ligarAoCatalogo(classes.flatMap((c) => (c.lider ? [c.lider] : [])), todos).map((l) => [l.segmentoFonte, l]),
@@ -129,6 +131,10 @@ export default async function PaginaInicio() {
               <h2 className="text-xl font-semibold tracking-tight">Mais vendidos de {nomeMes(segmentos.periodo ?? ultimoMes)}</h2>
               <p className="text-sm text-muted-foreground">
                 Top 10 de cada categoria, com o CarPlay/Android Auto de cada carro: por cabo (Streambox) e sem fio.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Os números são emplacamentos oficiais (registro no Renavam) publicados pela Fenabrave; o premium vem da Bright Consulting. No pé
+                de cada bloco está a página e a tabela de onde saiu cada número e uma matéria da imprensa que confere os mesmos valores.
               </p>
             </div>
             <Button variant="ghost" size="sm" asChild>
@@ -319,16 +325,47 @@ function BlocoTop({ bloco, logos }: { bloco: BlocoRanking; logos: Map<string, st
           </ol>
         </details>
       ) : null}
-      <p className="mt-auto border-t px-5 py-2 text-[11px] text-muted-foreground">
-        Fonte:{" "}
-        {bloco.fonteUrl ? (
-          <a href={bloco.fonteUrl} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">
-            {bloco.fonte} ↗
-          </a>
-        ) : (
-          bloco.fonte
-        )}
-      </p>
+      <div className="mt-auto space-y-1 border-t px-5 py-3 text-[11px] text-muted-foreground">
+        <p>
+          <span className="font-medium text-foreground">Fonte:</span>{" "}
+          {bloco.fonteUrl ? (
+            <a href={bloco.fonteUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-primary">
+              {bloco.fonte} ↗
+            </a>
+          ) : (
+            bloco.fonte
+          )}
+        </p>
+        {bloco.nota ? <p>{bloco.nota}</p> : null}
+        {bloco.conferencias.length ? (
+          <details className="group/conf">
+            <summary className="cursor-pointer list-none">
+              <span className="font-medium text-success">✓ Conferido</span> com{" "}
+              {bloco.conferencias.map((c, i) => (
+                <span key={c.url}>
+                  {i ? ", " : ""}
+                  {c.fonteNome}
+                </span>
+              ))}
+              <span className="text-primary"> · ver trechos</span>
+            </summary>
+            <ul className="mt-1 space-y-1">
+              {bloco.conferencias.map((c) => (
+                <li key={c.url} className="rounded-md bg-muted/50 p-2">
+                  <a href={c.url} target="_blank" rel="noreferrer" className="font-medium text-foreground underline underline-offset-2 hover:text-primary">
+                    {c.fonteNome} ↗
+                  </a>{" "}
+                  <span className={c.resultado === "igual" ? "text-success" : "text-warning"}>
+                    {c.resultado === "igual" ? "mesmos números" : "números diferentes"}
+                  </span>
+                  <span className="mt-0.5 block italic">&ldquo;{c.trecho}&rdquo;</span>
+                  {c.observacao ? <span className="mt-0.5 block">{c.observacao}</span> : null}
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
+      </div>
     </div>
   );
 }
