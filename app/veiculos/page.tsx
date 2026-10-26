@@ -22,7 +22,31 @@ type Filtros = {
   conexao?: string;
   farol?: string;
   palhetas?: string;
+  agrupar?: string;
 };
+
+type Grupo = { chave: string; titulo: string; ancora: string; exemplo: Veiculo; itens: Veiculo[] };
+
+const comparar = (a: string, b: string) => a.localeCompare(b, "pt-BR", { sensitivity: "base" });
+
+/** Separa a lista por marca (padrão) ou por categoria, com grupos e modelos em ordem alfabética. */
+function agrupar(lista: Veiculo[], por: "marca" | "categoria"): Grupo[] {
+  const grupos = new Map<string, Grupo>();
+  for (const v of lista) {
+    const chave = por === "marca" ? v.montadoraSlug : v.categoria;
+    const titulo = por === "marca" ? v.marca : v.categoria;
+    const ancora = `grupo-${normalizar(chave).replace(/[^a-z0-9]+/g, "-")}`;
+    const g = grupos.get(chave) ?? { chave, titulo, ancora, exemplo: v, itens: [] };
+    g.itens.push(v);
+    grupos.set(chave, g);
+  }
+  return [...grupos.values()]
+    .sort((a, b) => comparar(a.titulo, b.titulo))
+    .map((g) => ({
+      ...g,
+      itens: g.itens.sort((a, b) => comparar(a.marca, b.marca) || comparar(a.nomeComercial, b.nomeComercial)),
+    }));
+}
 
 function filtrar(lista: Veiculo[], f: Filtros): Veiculo[] {
   const termos = normalizar(f.q ?? "").split(" ").filter(Boolean);
@@ -60,15 +84,17 @@ export default async function PaginaVeiculos({
   const todos = await buscarVeiculos();
   const publicados = todos
     .filter((v) => v.completude?.publicavel)
-    .sort((a, b) => a.marca.localeCompare(b.marca) || a.nomeComercial.localeCompare(b.nomeComercial));
+    .sort((a, b) => comparar(a.marca, b.marca) || comparar(a.nomeComercial, b.nomeComercial));
   const emVerificacao = todos.length - publicados.length;
   const veiculos = filtrar(publicados, filtros);
   const filtrando = veiculos.length !== publicados.length;
+  const porCategoria = filtros.agrupar === "categoria";
+  const grupos = agrupar(veiculos, porCategoria ? "categoria" : "marca");
 
   const marcas = Array.from(new Map(publicados.map((v) => [v.montadoraSlug, v.marca])))
     .map(([valor, rotulo]) => ({ valor, rotulo }))
-    .sort((a, b) => a.rotulo.localeCompare(b.rotulo));
-  const categorias = Array.from(new Set(publicados.map((v) => v.categoria))).sort();
+    .sort((a, b) => comparar(a.rotulo, b.rotulo));
+  const categorias = Array.from(new Set(publicados.map((v) => v.categoria))).sort(comparar);
 
   return (
     <div className="flex flex-col gap-5">
@@ -90,43 +116,84 @@ export default async function PaginaVeiculos({
           Nenhum modelo com esses filtros.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-card">
-          <div className="hidden grid-cols-[2fr_1fr_1.3fr_1.3fr_1fr_1fr] gap-3 border-b bg-muted/40 px-4 py-2 text-xs font-medium text-muted-foreground md:grid">
-            <span>Modelo</span>
-            <span>Tela</span>
-            <span>Apple CarPlay</span>
-            <span>Android Auto</span>
-            <span>Palheta dianteira</span>
-            <span>Palheta traseira</span>
-          </div>
-          <ul className="divide-y">
-            {veiculos.map((v) => {
-              const p = projecoes(v.tecnicos?.multimidia);
-              const pal = resumoPalhetas(v.tecnicos?.palhetas);
-              return (
-                <li key={v.id}>
-                  <Link
-                    href={`/veiculos/${v.slug}`}
-                    className="grid grid-cols-2 gap-x-3 gap-y-3 px-4 py-3 hover:bg-accent md:grid-cols-[2fr_1fr_1.3fr_1.3fr_1fr_1fr] md:items-center"
-                  >
-                    <span className="col-span-2 flex items-center gap-3 md:col-span-1">
-                      <LogoMontadora nome={v.marca} slug={v.montadoraSlug} logotipoUrl={v.montadora?.logotipoUrl ?? null} tamanho="sm" />
-                      <span className="min-w-0">
-                        <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">{v.marca}</span>
-                        <span className="block font-medium">{v.nomeComercial}</span>
-                      </span>
+        <>
+          <nav aria-label={porCategoria ? "Categorias" : "Marcas"} className="flex flex-wrap gap-1.5">
+            {grupos.map((g) => (
+              <a
+                key={g.chave}
+                href={`#${g.ancora}`}
+                className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-medium hover:border-primary/40 hover:text-primary"
+              >
+                {g.titulo}
+                <span className="text-muted-foreground">{g.itens.length}</span>
+              </a>
+            ))}
+          </nav>
+
+          <div className="flex flex-col gap-4">
+            {grupos.map((g) => (
+              <section key={g.chave} id={g.ancora} className="scroll-mt-20 overflow-hidden rounded-lg border bg-card">
+                <div className="grid gap-3 border-b bg-muted/40 px-4 py-2 md:grid-cols-[2fr_1fr_1.3fr_1.3fr_1fr_1fr] md:items-center">
+                  <span className="flex min-w-0 items-center gap-2">
+                    {porCategoria ? null : (
+                      <LogoMontadora
+                        nome={g.titulo}
+                        slug={g.exemplo.montadoraSlug}
+                        logotipoUrl={g.exemplo.montadora?.logotipoUrl ?? null}
+                        tamanho="sm"
+                      />
+                    )}
+                    <span className="font-semibold">{g.titulo}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {g.itens.length} modelo{g.itens.length === 1 ? "" : "s"}
                     </span>
-                    <Celula rotulo="Tela">{v.tecnicos?.multimidia?.telaPolegadas ?? <Vazio />}</Celula>
-                    <Celula rotulo="CarPlay"><ResumoProjecao {...p.carplay} /></Celula>
-                    <Celula rotulo="Android Auto"><ResumoProjecao {...p.androidAuto} /></Celula>
-                    <Celula rotulo="Palheta dianteira">{pal.dianteira ?? <Vazio />}</Celula>
-                    <Celula rotulo="Palheta traseira">{pal.traseira ?? <Vazio />}</Celula>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+                    {porCategoria ? null : (
+                      <Link href={`/montadoras/${g.chave}`} className="ml-auto text-xs text-primary hover:underline md:ml-2">
+                        ver marca
+                      </Link>
+                    )}
+                  </span>
+                  {["Tela", "Apple CarPlay", "Android Auto", "Palheta dianteira", "Palheta traseira"].map((c) => (
+                    <span key={c} className="hidden text-xs font-medium text-muted-foreground md:block">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+                <ul className="divide-y">
+                  {g.itens.map((v) => {
+                    const p = projecoes(v.tecnicos?.multimidia);
+                    const pal = resumoPalhetas(v.tecnicos?.palhetas);
+                    return (
+                      <li key={v.id}>
+                        <Link
+                          href={`/veiculos/${v.slug}`}
+                          className="grid grid-cols-2 gap-x-3 gap-y-3 px-4 py-3 hover:bg-accent md:grid-cols-[2fr_1fr_1.3fr_1.3fr_1fr_1fr] md:items-center"
+                        >
+                          <span className="col-span-2 flex items-center gap-3 md:col-span-1">
+                            {porCategoria ? (
+                              <LogoMontadora nome={v.marca} slug={v.montadoraSlug} logotipoUrl={v.montadora?.logotipoUrl ?? null} tamanho="sm" />
+                            ) : null}
+                            <span className="min-w-0">
+                              <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">
+                                {porCategoria ? v.marca : v.categoria}
+                              </span>
+                              <span className="block font-medium">{v.nomeComercial}</span>
+                            </span>
+                          </span>
+                          <Celula rotulo="Tela">{v.tecnicos?.multimidia?.telaPolegadas ?? <Vazio />}</Celula>
+                          <Celula rotulo="CarPlay"><ResumoProjecao {...p.carplay} /></Celula>
+                          <Celula rotulo="Android Auto"><ResumoProjecao {...p.androidAuto} /></Celula>
+                          <Celula rotulo="Palheta dianteira">{pal.dianteira ?? <Vazio />}</Celula>
+                          <Celula rotulo="Palheta traseira">{pal.traseira ?? <Vazio />}</Celula>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

@@ -96,6 +96,15 @@ export function FiltrosCatalogo({
         </select>
         <select
           className={CLASSE_SELECT}
+          value={params.get("agrupar") ?? ""}
+          onChange={(e) => aplicar("agrupar", e.target.value)}
+          aria-label="Agrupar"
+        >
+          <option value="">Agrupar por marca</option>
+          <option value="categoria">Agrupar por categoria</option>
+        </select>
+        <select
+          className={CLASSE_SELECT}
           value={params.get("palhetas") ?? ""}
           onChange={(e) => aplicar("palhetas", e.target.value)}
           aria-label="Palhetas"
