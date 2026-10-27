@@ -263,6 +263,12 @@ Troque a foto quando: status ≠ 200; largura abaixo de 400 px; proporção acim
 - Onde achar foto boa: **GWM** — galeria `dianteira-…` da página do modelo; **GAC** — menu de modelos nos dados da página inicial (`operation/ncar/page/…-0.webp` logo depois do nome e do código do modelo); **Nissan** — imagem principal `…hero-d.webp.ximg.l_12_m.smart.webp`; **Renault** — `ONE_DACIA_PP_XLARGE_DENSITY2` no lugar de `LARGE_DENSITY1`.
 - A imagem não pode ser vista daqui: a escolha se apoia no nome do arquivo, nas dimensões e na descrição/categorias do Commons. Para foto do Commons de modelo chinês, confirme pela ficha que é a mesma versão (ex.: Aion Y brasileiro = Aion Y Plus, bateria de 63,2 kWh). Na dúvida sobre a geração, prefira a foto oficial brasileira.
 
+### Palhetas pelo catálogo Wega guardado no banco (27/10/2026)
+- O texto inteiro do catálogo Wega 2026 está em `interno.textos_fonte` (id `wega-2026`) e a view `interno.wega_linhas` separa cada linha da tabela em colunas (`marca, modelo, de, ate, wfb, wpu, wph, wps, wfbm, adaptador, motorista, passageiro, tras_cod, tras_pol, tras_enc, linha`). Consulte por SQL em vez de reler o PDF: `select * from interno.wega_linhas where marca='TOYOTA' and (ate='→' or ate>='2024');`
+- Grave a coluna `linha` como trecho literal na evidência. Encaixe: `Wega: adaptador PX` (coluna `adaptador`), `Wega: palheta específica WPSX` (só `wps`) ou `Gancho (Wega WFB/WPU/WPH)`; traseira `Wega: palheta WTRM/WTSM, encaixe X`.
+- Intervalo aberto (`→`) que começou na geração anterior do modelo vendido hoje → `nao_confirmado`, dizendo a geração na evidência. Geração claramente diferente (Macan elétrico, Lexus ES novo, BMW iX3 Neue Klasse, MINI novo) → não usar.
+- Situação em 27/10: 183 de 269 com palheta. Sem palheta no Wega: marcas chinesas (BYD Atto 2/Atto 8/Dolphin SE/Sealion 7, Changan, GAC, Geely, Denza, Leapmotor, Jetour, Zeekr 7X, GWM H7/Ora 5, Omoda 5/7, Jaecoo 5), premium (BMW, Mercedes, MINI, Porsche Cayenne/Macan, Range Rover/Sport, Lexus ES/RZ, Audi A6/Q6 e-tron, Volvo EX90/XC60) e Captiva EV, Sonic, Mustang, Prelude, i20, Avenger, EV5, EV9, Tasman, MG, Kait, Dakota, Koleos, Niagara, GR Yaris, Yaris Cross, Golf GTI, ID. Buzz, Polo Track. OEM só em 15 veículos.
+
 ---
 
 ## ROTINA QUINZENAL (automática, dias 2 e 16 de cada mês)
