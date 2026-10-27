@@ -269,6 +269,21 @@ Troque a foto quando: status ≠ 200; largura abaixo de 400 px; proporção acim
 - Intervalo aberto (`→`) que começou na geração anterior do modelo vendido hoje → `nao_confirmado`, dizendo a geração na evidência. Geração claramente diferente (Macan elétrico, Lexus ES novo, BMW iX3 Neue Klasse, MINI novo) → não usar.
 - Situação em 27/10: 183 de 269 com palheta. Sem palheta no Wega: marcas chinesas (BYD Atto 2/Atto 8/Dolphin SE/Sealion 7, Changan, GAC, Geely, Denza, Leapmotor, Jetour, Zeekr 7X, GWM H7/Ora 5, Omoda 5/7, Jaecoo 5), premium (BMW, Mercedes, MINI, Porsche Cayenne/Macan, Range Rover/Sport, Lexus ES/RZ, Audi A6/Q6 e-tron, Volvo EX90/XC60) e Captiva EV, Sonic, Mustang, Prelude, i20, Avenger, EV5, EV9, Tasman, MG, Kait, Dakota, Koleos, Niagara, GR Yaris, Yaris Cross, Golf GTI, ID. Buzz, Polo Track. OEM só em 15 veículos.
 
+## RODADA 10 (2026-10-27) — CÓDIGOS OEM E INTERRUPTORES DE VIDRO
+
+### Onde há código OEM de modelo atual (testado em 27/10/2026)
+- **VW — pecas.vw.com.br (loja oficial)**: cada página de produto traz o código, "Lado de Montagem", "Posição de Montagem" e a lista "Aplicações" (modelo + anos). Ache as páginas com `WebSearch` (`allowed_domains: ["pecas.vw.com.br"]`), leia com a ação `texto`, guarde em `interno.textos_fonte` (id `vwpecas:<n>`) e consulte a view `interno.vwpecas_aplicacoes`. A loja comete erros de aplicação (lista palheta traseira para o Virtus sedã) — não grave o que for fisicamente impossível. Botões de vidro: a loja não diz a porta; grave `posicao = 'Botão de vidro (porta não informada)'`.
+- **Chevrolet — acciolygm.com.br (concessionária, peças "ORIGINAL GM")**: título "Produto - Modelo ano a ano | REFERÊNCIA: código | MARCA: ORIGINAL GM"; view `interno.accioly_produtos` (ids `accioly:<caminho>`). Os anos da loja vão até 2026 e os Chevrolet do catálogo são 2027 → `nao_confirmado`. Código com prefixo "JG" é o par; a peça é o número sem o prefixo.
+- **Fiat/Jeep — fiatpecas.com.br e sogenuinasfiat.com.br (peças Mopar/originais)**: palhetas com "Código de Referência" e "Aplicação". Não há interruptor de vidro de modelo atual nessas lojas.
+- **Kostal Brasil (kostalbrasil.com.br)** e **DNI (dni.com.br)**: catálogos de reposição com número original, mas os interruptores de vidro cobrem só gerações antigas (Gol/Voyage/Saveiro até 2021, Palio, Celta, Fit/City antigos). Textos guardados (`kostal:*`, view `interno.kostal_aplicacoes`; `dni-sitemaps`).
+- **Dyna 2025** (dyna.com.br, PDF) guardado em `interno.textos_fonte` (`dyna-2025`): usa códigos próprios (S4xx, SDx, DXxx) e traz a tabela código → mm/polegadas. Útil para modelos fora do Wega.
+- **Tiger e catálogos Fraga** (catalogofraga.com.br): a página monta tudo no navegador; não dá para ler. Dial: só aparece em marketplaces, sem catálogo próprio.
+- Nova ação da função de leitura: `{"acao":"html","paginas":[{"id","url","inicio?","tamanho?"}]}` devolve o HTML bruto (para entender páginas montadas por JavaScript).
+
+### Situação em 27/10/2026
+- Palhetas: 182 de 269 com medida dianteira, 104 com traseira, 168 com encaixe e 25 com código OEM.
+- Interruptores de vidro: 12 veículos (VW Polo, Virtus, Nivus, Polo Track, T-Cross, Taos, Tera; Chevrolet Onix, Onix Plus, Tracker, S10, Spin). Próximos: Hyundai, Toyota, Fiat/Jeep, Renault, Honda, Nissan — procurar lojas de concessionária com "código original" na página.
+
 ---
 
 ## ROTINA QUINZENAL (automática, dias 2 e 16 de cada mês)

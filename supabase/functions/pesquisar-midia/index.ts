@@ -11,6 +11,8 @@
 // POST { acao: "youtube", buscas: [{ id, termo, limite? }] }
 //   → vídeos da busca do YouTube (id, título, canal, link). Título e descrição de
 //   um vídeo saem com "pagina"/"trechos" na URL do vídeo (descrição vai em [d]).
+// POST { acao: "html", paginas: [{ id, url, inicio?, tamanho? }] }
+//   → um pedaço do HTML/JS bruto (para achar a API de catálogos que montam a página no navegador).
 // POST { acao: "imagens", imagens: [{ id, url }] }
 //   → status, tipo, tamanho e dimensões de cada foto cadastrada (confere se abre).
 // POST { acao: "commons", consultas: [{ id, termo, limite? }] }
@@ -283,6 +285,14 @@ async function buscarTexto(p: { id: string; url: string; inicio?: number; tamanh
   };
 }
 
+async function buscarHtml(p: { id: string; url: string; inicio?: number; tamanho?: number }) {
+  const r = await baixar(p.url);
+  if ("erro" in r) return { id: p.id, ...r };
+  const inicio = Math.max(0, p.inicio ?? 0);
+  const tamanho = Math.min(p.tamanho ?? 50_000, 200_000);
+  return { id: p.id, status: r.status, finalUrl: r.finalUrl, tamanhoHtml: r.html.length, inicio, html: r.html.slice(inicio, inicio + tamanho) };
+}
+
 /** Busca no YouTube: lista de vídeos com título e canal (do ytInitialData da página de resultados). */
 async function buscarYoutube(b: { id: string; termo: string; limite?: number }) {
   const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(b.termo)}&hl=pt-BR&gl=BR`;
@@ -458,6 +468,8 @@ Deno.serve(async (req) => {
     resultado = await emLotes(body.paginas ?? [], 6, buscarTrechos);
   } else if (body.acao === "texto") {
     resultado = await emLotes(body.paginas ?? [], 3, buscarTexto);
+  } else if (body.acao === "html") {
+    resultado = await emLotes(body.paginas ?? [], 3, buscarHtml);
   } else if (body.acao === "youtube") {
     resultado = await emLotes(body.buscas ?? [], 3, buscarYoutube);
   } else if (body.acao === "imagens") {
