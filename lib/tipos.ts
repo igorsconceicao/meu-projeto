@@ -147,12 +147,36 @@ export type InterruptorVidro = Rastreio & {
   conector: string | null;
 };
 
+/** Uma versão do modelo; `ordem` 1 é a de entrada e a maior é a topo de linha. */
+export type Versao = Rastreio & {
+  ordem: number;
+  nome: string;
+  nomeCompleto: string | null;
+  posicionamento: string | null;
+  motor: string | null;
+  cambio: string | null;
+  diferencial: string | null;
+  itensAdicionais: string[];
+  /** Versão sobre a qual os itens são acrescentados (null = itens de série ou destaques). */
+  baseComparacao: string | null;
+  multimidia: string | null;
+  iluminacao: string | null;
+};
+
+/** Como a marca nomeia as versões do modelo e de onde veio a lista. */
+export type LinhaVersoes = Rastreio & {
+  nomenclatura: string | null;
+  observacoes: string | null;
+};
+
 export type DadosTecnicos = {
   ficha: FichaTecnica | null;
   multimidia: Multimidia | null;
   iluminacao: ItemIluminacao[];
   palhetas: Palheta[];
   interruptores: InterruptorVidro[];
+  versoes: Versao[];
+  linhaVersoes: LinhaVersoes | null;
 };
 
 export type ItemChecklist = {

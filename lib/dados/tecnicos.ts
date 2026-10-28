@@ -4,9 +4,11 @@ import type {
   FichaTecnica,
   InterruptorVidro,
   ItemIluminacao,
+  LinhaVersoes,
   Multimidia,
   Palheta,
   Rastreio,
+  Versao,
 } from "@/lib/tipos";
 
 type Linha = Record<string, unknown> & { veiculo_id: string };
@@ -17,7 +19,22 @@ const TABELAS = [
   "iluminacao",
   "palhetas",
   "interruptores_vidro",
+  "versoes",
+  "linhas_versoes",
 ] as const;
+
+// O PostgREST do Supabase devolve no máximo 1000 linhas por pedido.
+const PAGINA = 1000;
+// Coluna única de cada tabela, para a paginação não pular nem repetir linhas.
+const CHAVE: Record<(typeof TABELAS)[number], string> = {
+  fichas_tecnicas: "veiculo_id",
+  multimidias: "veiculo_id",
+  iluminacao: "id",
+  palhetas: "id",
+  interruptores_vidro: "id",
+  versoes: "id",
+  linhas_versoes: "veiculo_id",
+};
 
 function txt(v: unknown): string | null {
   return typeof v === "string" && v.trim() ? v : null;
@@ -101,8 +118,37 @@ function mapearInterruptor(r: Linha): InterruptorVidro {
   };
 }
 
+function mapearVersao(r: Linha): Versao {
+  return {
+    ...rastreio(r),
+    ordem: Number(r.ordem),
+    nome: String(r.nome),
+    nomeCompleto: txt(r.nome_completo),
+    posicionamento: txt(r.posicionamento),
+    motor: txt(r.motor),
+    cambio: txt(r.cambio),
+    diferencial: txt(r.diferencial),
+    itensAdicionais: Array.isArray(r.itens_adicionais) ? (r.itens_adicionais as string[]) : [],
+    baseComparacao: txt(r.base_comparacao),
+    multimidia: txt(r.multimidia),
+    iluminacao: txt(r.iluminacao),
+  };
+}
+
+function mapearLinhaVersoes(r: Linha): LinhaVersoes {
+  return { ...rastreio(r), nomenclatura: txt(r.nomenclatura), observacoes: txt(r.observacoes) };
+}
+
 export function dadosTecnicosVazios(): DadosTecnicos {
-  return { ficha: null, multimidia: null, iluminacao: [], palhetas: [], interruptores: [] };
+  return {
+    ficha: null,
+    multimidia: null,
+    iluminacao: [],
+    palhetas: [],
+    interruptores: [],
+    versoes: [],
+    linhaVersoes: null,
+  };
 }
 
 // Ordem de exibição das posições de iluminação (as demais vão ao final).
@@ -129,12 +175,18 @@ export async function buscarDadosTecnicos(
   veiculoId?: string,
 ): Promise<Map<string, DadosTecnicos>> {
   const supabase = await criarClienteSupabaseServidor();
-  const resultados = await Promise.all(
-    TABELAS.map((tabela) => {
-      const q = supabase.from(tabela).select("*");
-      return veiculoId ? q.eq("veiculo_id", veiculoId) : q;
-    }),
-  );
+  const ler = async (tabela: (typeof TABELAS)[number]) => {
+    const linhas: Linha[] = [];
+    for (let de = 0; ; de += PAGINA) {
+      let q = supabase.from(tabela).select("*");
+      if (veiculoId) q = q.eq("veiculo_id", veiculoId);
+      const { data, error } = await q.order(CHAVE[tabela]).range(de, de + PAGINA - 1);
+      if (error) return { data: null, error };
+      linhas.push(...((data ?? []) as Linha[]));
+      if ((data ?? []).length < PAGINA) return { data: linhas, error: null };
+    }
+  };
+  const resultados = await Promise.all(TABELAS.map(ler));
 
   const mapa = new Map<string, DadosTecnicos>();
   const obter = (id: string) => {
@@ -166,12 +218,19 @@ export async function buscarDadosTecnicos(
         case "interruptores_vidro":
           d.interruptores.push(mapearInterruptor(r));
           break;
+        case "versoes":
+          d.versoes.push(mapearVersao(r));
+          break;
+        case "linhas_versoes":
+          d.linhaVersoes = mapearLinhaVersoes(r);
+          break;
       }
     }
   });
 
   for (const d of mapa.values()) {
     d.iluminacao.sort((a, b) => ordemIluminacao(a.posicao) - ordemIluminacao(b.posicao));
+    d.versoes.sort((a, b) => a.ordem - b.ordem);
   }
   return mapa;
 }

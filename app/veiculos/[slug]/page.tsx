@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ExternalLink,
+  Layers,
   Lightbulb,
   MonitorSmartphone,
   Wind,
@@ -16,6 +17,7 @@ import { LogoMontadora } from "@/components/midia/logo-montadora";
 import { VideoOficialEmbed } from "@/components/midia/video-oficial-embed";
 import { projecoes, MiniEstado } from "@/components/tecnico/conectividade";
 import { FonteDado, ListaChecklist } from "@/components/tecnico/elementos";
+import { ListaVersoes } from "@/components/tecnico/versoes";
 import { Badge } from "@/components/ui/badge";
 import { BadgeConfianca } from "@/components/ui/badge-confianca";
 import { Button } from "@/components/ui/button";
@@ -74,7 +76,7 @@ export default async function PaginaFichaVeiculo({
     if (!user) notFound();
   }
 
-  const { ficha, multimidia: mm, iluminacao, palhetas, interruptores } = tecnicos;
+  const { ficha, multimidia: mm, iluminacao, palhetas, interruptores, versoes, linhaVersoes } = tecnicos;
   const p = projecoes(mm);
   const palhetasOrdenadas = [...palhetas].sort(
     (a, b) => indice(ORDEM_PALHETA, a.posicao) - indice(ORDEM_PALHETA, b.posicao),
@@ -88,7 +90,7 @@ export default async function PaginaFichaVeiculo({
   ];
   const fontes = Array.from(
     new Map(
-      [ficha, mm, ...iluminacao, ...palhetas, ...interruptores]
+      [ficha, mm, ...iluminacao, ...palhetas, ...interruptores, linhaVersoes, ...versoes]
         .filter((d): d is NonNullable<typeof d> => !!d)
         .map((d) => [d.fonteUrl, d.consultadoEm] as const),
     ),
@@ -245,6 +247,22 @@ export default async function PaginaFichaVeiculo({
           </CardContent>
         </Card>
       ) : null}
+
+      {/* 4. Versões, da entrada à topo */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Layers className="h-5 w-5 text-primary" />
+            Versões{versoes.length ? ` (${versoes.length})` : ""}
+          </CardTitle>
+          <CardDescription>
+            Da versão de entrada à topo de linha: o que muda em cada uma, conforme a fonte indicada.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ListaVersoes versoes={versoes} linha={linhaVersoes} />
+        </CardContent>
+      </Card>
 
       {/* O que ainda falta */}
       {pendentes.length ? (

@@ -51,6 +51,12 @@ const COLUNAS: [string, (v: Veiculo) => string | number | null | undefined][] = 
     v.tecnicos?.interruptores
       .map((i) => `${i.posicao}: ${[i.tipo, i.oem, i.pinos ? `${i.pinos} pinos` : null].filter(Boolean).join(" / ")}`)
       .join(" | ")],
+  ["Quantidade de versões", (v) => v.tecnicos?.versoes.length || null],
+  ["Versões (da entrada à topo)", (v) =>
+    v.tecnicos?.versoes
+      .map((x) => [x.nome, x.motor, x.diferencial].filter(Boolean).join(" — "))
+      .join(" | ")],
+  ["Fonte das versões", (v) => v.tecnicos?.linhaVersoes?.fonteUrl ?? v.tecnicos?.versoes[0]?.fonteUrl],
   ["Página oficial", (v) => v.linkOficialUrl ?? v.verificadoBrUrl],
   ["Fonte da ficha técnica", (v) => v.tecnicos?.ficha?.fonteUrl],
   ["Fonte da multimídia", (v) => v.tecnicos?.multimidia?.fonteUrl],

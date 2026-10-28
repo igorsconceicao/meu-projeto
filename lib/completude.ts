@@ -15,7 +15,7 @@ export function fonteOficialBr(v: Veiculo): string | null {
 const identificado = (e: string | undefined) => !!e && e !== "nao_identificado";
 
 export function avaliarCompletude(v: Veiculo, d: DadosTecnicos): Completude {
-  const { ficha, multimidia: mm, iluminacao, palhetas, interruptores } = d;
+  const { ficha, multimidia: mm, iluminacao, palhetas, interruptores, versoes } = d;
   const eletrico = v.propulsao === "Elétrico";
 
   const obrigatorios: ItemChecklist[] = [
@@ -55,6 +55,7 @@ export function avaliarCompletude(v: Veiculo, d: DadosTecnicos): Completude {
       rotulo: eletrico ? "Motor e bateria" : "Motor e câmbio",
       ok: !!(ficha?.motor || ficha?.potencia) && !!(eletrico ? ficha?.bateria || ficha?.autonomia : ficha?.cambio),
     },
+    { chave: "versoes", rotulo: "Versões (da entrada à topo)", ok: versoes.length > 0 },
     { chave: "interruptores", rotulo: "Interruptores dos vidros", ok: interruptores.length > 0 },
     {
       chave: "oem",

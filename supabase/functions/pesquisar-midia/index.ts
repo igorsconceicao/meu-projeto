@@ -6,8 +6,9 @@
 // POST { acao: "trechos", paginas: [{ id, url, palavras: string[], raio?, max? }] }
 //   → trechos de texto ao redor de cada palavra (ficha técnica, multimídia...).
 //   Aceita também PDFs (fichas técnicas oficiais): o texto é extraído com unpdf.
-// POST { acao: "texto", paginas: [{ id, url, inicio?, tamanho? }] }
-//   → um pedaço contínuo do texto (páginas longas e PDFs, como o informativo da Fenabrave).
+// POST { acao: "texto", paginas: [{ id, url, inicio?, tamanho?, dados? }] }
+//   → um pedaço contínuo do texto (páginas longas e PDFs, como o informativo da Fenabrave);
+//   com dados: true inclui o JSON embutido na página (versões e preços montados no navegador).
 // POST { acao: "youtube", buscas: [{ id, termo, limite? }] }
 //   → vídeos da busca do YouTube (id, título, canal, link). Título e descrição de
 //   um vídeo saem com "pagina"/"trechos" na URL do vídeo (descrição vai em [d]).
@@ -135,7 +136,8 @@ async function baixar(url: string): Promise<Baixado | { erro: string; status?: n
       const texto = await textoDoPdf(bytes);
       return { status: res.status, finalUrl: res.url, html: texto.slice(0, 2_000_000), pdf: true };
     }
-    return { status: res.status, finalUrl: res.url, html: (await res.text()).slice(0, 4_000_000), pdf: false };
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    return { status: res.status, finalUrl: res.url, html: decodificarBytes(bytes, tipo).slice(0, 4_000_000), pdf: false };
   } catch (e: any) {
     return { erro: String(e?.message ?? e) };
   } finally {
@@ -143,15 +145,37 @@ async function baixar(url: string): Promise<Baixado | { erro: string; status?: n
   }
 }
 
+/** Decodifica no charset da página (header ou <meta>); muitos portais ainda usam ISO-8859-1. */
+function decodificarBytes(bytes: Uint8Array, contentType: string): string {
+  let charset = contentType.match(/charset=["']?([\w-]+)/i)?.[1];
+  if (!charset) {
+    const cabeca = new TextDecoder("latin1").decode(bytes.slice(0, 4096));
+    charset = cabeca.match(/<meta[^>]+charset=["']?([\w-]+)/i)?.[1];
+  }
+  try {
+    return new TextDecoder((charset ?? "utf-8").toLowerCase()).decode(bytes);
+  } catch {
+    return new TextDecoder("utf-8").decode(bytes);
+  }
+}
+
+const ENTIDADES: Record<string, string> = {
+  nbsp: " ", amp: "&", quot: '"', apos: "'", lt: "<", gt: ">",
+  aacute: "á", Aacute: "Á", agrave: "à", Agrave: "À", acirc: "â", Acirc: "Â", atilde: "ã", Atilde: "Ã",
+  eacute: "é", Eacute: "É", ecirc: "ê", Ecirc: "Ê", iacute: "í", Iacute: "Í",
+  oacute: "ó", Oacute: "Ó", ocirc: "ô", Ocirc: "Ô", otilde: "õ", Otilde: "Õ",
+  uacute: "ú", Uacute: "Ú", uuml: "ü", Uuml: "Ü", ccedil: "ç", Ccedil: "Ç",
+  ordm: "º", ordf: "ª", deg: "°", reg: "®", trade: "™", copy: "©", sup2: "²", sup3: "³",
+  ndash: "–", mdash: "—", hellip: "…", lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”",
+  laquo: "«", raquo: "»", bull: "•", middot: "·", times: "×", frac12: "½",
+};
+
 function decodificar(s: string): string {
   return s
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&#(\d+);/g, (_m, n) => String.fromCharCode(Number(n)))
+    .replace(/&([a-zA-Z][a-zA-Z0-9]*);/g, (m, nome) => ENTIDADES[nome] ?? m)
+    .replace(/&#39;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_m, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_m, n) => String.fromCodePoint(Number(n)))
     .replace(/\\u([0-9a-fA-F]{4})/g, (_m, h) => String.fromCharCode(parseInt(h, 16)));
 }
 
@@ -269,10 +293,12 @@ async function buscarTrechos(p: { id: string; url: string; palavras: string[]; r
   };
 }
 
-async function buscarTexto(p: { id: string; url: string; inicio?: number; tamanho?: number }) {
+async function buscarTexto(p: { id: string; url: string; inicio?: number; tamanho?: number; dados?: boolean }) {
   const r = await baixar(p.url);
   if ("erro" in r) return { id: p.id, ...r };
-  const texto = r.pdf ? r.html.replace(/\s+/g, " ").trim() : textos(r.html).visivel;
+  const t = r.pdf ? null : textos(r.html);
+  // dados: true junta o JSON embutido (sites que montam versões e preços no navegador).
+  const texto = t ? (p.dados && t.dados ? `${t.visivel} || DADOS: ${t.dados}` : t.visivel) : r.html.replace(/\s+/g, " ").trim();
   const inicio = Math.max(0, p.inicio ?? 0);
   const tamanho = Math.min(p.tamanho ?? 50_000, 200_000);
   return {
