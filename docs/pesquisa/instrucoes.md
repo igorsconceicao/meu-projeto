@@ -88,6 +88,7 @@ select '<marca>-<modelo>', id, '<Nome>', <ano só se a fonte disser, senão null
 on conflict (slug) do nothing;
 ```
 4. Grave fichas_tecnicas / multimidias / iluminacao (regras acima; `consultado_em` = '2026-10-16').
+4b. **Versões (obrigatório desde 28/10/2026).** Todo modelo cadastrado precisa da sua linha de versões, da de entrada à topo — siga a RODADA 11.
 5. Correções: UPDATE solto às vezes trava — prefira `insert ... on conflict ... do update`. Para corrigir campos de `veiculos` use `update veiculos set ... where slug='...'` e, se travar (60 s), avise no relatório em vez de insistir.
 6. Economia: use `left(content, 12000)` e extraia só o necessário via SQL (ex.: `jsonb_array_elements(content::jsonb)`); raio 100–150; não releia a mesma página.
 7. Relatório final: tabela compacta `slug | novo/existente | foto | motor | câmbio | tela | CarPlay/AA | farol | faltou`, mais até 5 linhas de observações.
@@ -286,13 +287,51 @@ Troque a foto quando: status ≠ 200; largura abaixo de 400 px; proporção acim
 
 ---
 
+## RODADA 11 (2026-10-28) — VERSÕES DE CADA MODELO (obrigatório em todo modelo, atual e novo)
+
+Pedido do usuário: para cada modelo, informar **quantas versões tem, quais são, a nomenclatura usada para diferenciá-las, o que muda de uma para outra e o que cada uma tem de melhor em itens/acessórios**, da mais simples à topo. Vale para todos os cadastrados e para **todo modelo novo que entrar**.
+
+### Onde fica no banco
+- `linhas_versoes` (uma linha por veículo): `nomenclatura` (como a marca nomeia as versões, em 1 frase), `observacoes` (preços por versão, conflitos da fonte, o que saiu de linha), fonte e confiança.
+- `versoes` (uma linha por versão, `ordem` = posição da entrada à topo): nome, posicionamento, motor, câmbio, diferencial (1 frase: o que essa versão tem de diferente/melhor), `itens_adicionais` (lista), `base_comparacao` (nome da versão de que ela parte: os itens listados são o que ela **acrescenta** sobre essa), multimídia, iluminação.
+- Ficha do veículo: card "Versões (N)". Checklist "O que ainda falta": item "Versões (da entrada à topo)". Exportação CSV/Excel: colunas de versões.
+
+### Fonte principal: catálogo 0 km da Webmotors (testado em 28–30/10/2026)
+- Endereço: `https://www.webmotors.com.br/<marca>/<modelo>/<ano>`. Os slugs exatos saem da página da marca (`https://www.webmotors.com.br/<marca>`, ação `html`, procure `webmotors.com.br/<marca>/<modelo>/202x`). Exemplos: `caoa-chery`, `caoa-changan`, `mercedes-benz/glc-300`, `bmw/320i`, `lexus/nx-350h`, `toyota/hilux-sw4`, `honda/crv`, `citroen/c3-aircross`.
+- Página inexistente responde 200: só aceite o texto se contiver "Conheça e compare todas as versões".
+- Baixe em lote (ação `texto`, `tamanho` 200000, até 6 páginas por chamada), guarde em `interno.textos_fonte` (id `wm:<marca>/<modelo>/<ano>`) e leia com `select interno.wm('<marca>/<modelo>/<ano>', 6000);` — devolve "Sobre o modelo", motor, "Itens da versão X, mais:" e a lista de preços por versão.
+- Tente o ano mais novo (2027, depois 2026, depois 2025) e diga em `observacoes` de que ano é a página.
+- Quando o texto não lista itens (só preços), busque reportagem de lançamento (Autoo, Vrum, Mecânica Online, Autodata etc.) com a ação `trechos` e cite-a na chave `fonte` da versão; se nada houver, grave a versão com `itens` vazio e diferencial "itens a confirmar". Nunca deduza itens.
+
+### Como gravar (sempre a linha inteira de uma vez)
+```sql
+select interno.gravar_versoes('<slug>',
+ '<nomenclatura: ex. Comfort (entrada), Luxury e X-Power (topo)>',
+ '<observações: preços por versão, conflitos da fonte, o que saiu de linha>',
+ '<url da fonte principal>', 'bem_fundamentado', '<trecho literal da fonte>',
+ jsonb_build_array(
+  jsonb_build_object('nome','<Versão de entrada>','posicionamento','Entrada','motor','...','cambio','...',
+    'diferencial','<o que ela já traz>','itens',jsonb_build_array('...'),'multimidia','...','iluminacao','...'),
+  jsonb_build_object('nome','<Próxima>','posicionamento','Intermediária','sobre','<Versão de entrada>',
+    'diferencial','<o que acrescenta>','itens',jsonb_build_array('<só o que ela acrescenta>'),'fonte','<url se for outra página>')
+ ));
+```
+- Ordem do array = ordem de entrada à topo (pelo preço). Variantes paralelas (carroceria, edição especial, motor diferente) também usam `sobre` apontando para a versão de que derivam.
+- Conflitos da fonte (texto × lista de preços, potência divergente) vão para `observacoes`, sem escolher um lado. Item duvidoso fica de fora.
+- Quando o cadastro é de uma variante (ex.: "Tiggo 8 Pro Plug-in Hybrid"), grave a linha completa do modelo e diga na `nomenclatura` qual versão é a do cadastro.
+
+### Situação em 30/10/2026
+- 269 de 269 veículos com versões gravadas (655 versões; 244 linhas pela Webmotors, 25 por site oficial, tabela oficial ou imprensa).
+- 76 versões estão sem lista de itens (a fonte só dá nome e preço). Em 17 modelos, nenhuma versão tem itens: audi-a6-e-tron, bmw-ix1, bmw-x3, bmw-x5, byd-shark, fiat-ducato, ford-f-150, ford-mustang-mach-e, gwm-haval-h7, honda-accord, honda-prelude, kia-sorento, land-rover-range-rover-sport, mercedes-benz-eqs, porsche-718-boxster, porsche-718-cayman e toyota-rav4. Prioridade do passo 2c.
+- Linhas `nao_confirmado` (pré-lançamento ou oferta BR incerta): renault-niagara, denza-z e renault-megane-e-tech. Regravar quando houver preço oficial no Brasil.
+
 ## ROTINA QUINZENAL (automática, dias 2 e 16 de cada mês)
 
 A rotina roda numa sessão nova, sem memória das anteriores. Passos:
 
 1. **Novos modelos.** O monitoramento (`monitorar-novidades`, dias 1 e 15) grava em `monitor_novidades` os links de modelo novos nos sites das marcas:
    `select n.id, m.slug as marca, n.titulo, n.url from monitor_novidades n left join montadoras m on m.id = n.montadora_id where n.status = 'pendente' and n.tipo = 'link_novo' order by n.detectado_em;`
-   Para cada um que seja de fato um modelo novo vendido no Brasil (não versão, campanha ou página institucional), cadastre o veículo (template da rodada 2, foto opcional) e colete multimídia e palhetas (rodada 6). Depois marque a novidade:
+   Para cada um que seja de fato um modelo novo vendido no Brasil (não versão, campanha ou página institucional), cadastre o veículo (template da rodada 2, foto opcional), colete multimídia e palhetas (rodada 6) e **grave as versões, da de entrada à topo (RODADA 11 — obrigatório)**. Depois marque a novidade:
    `insert into monitor_novidades (id, tipo, titulo, url) select id, tipo, titulo, url from monitor_novidades where id = '<id>' on conflict (id) do update set status = 'resolvido', resolvido_em = now();`
    (ou `status = 'ignorado'` quando não for modelo). Novidades `link_removido`/`pagina_fora_do_ar` ficam para revisão humana.
 0. **Vendas do mês (na execução do dia 2 e, se faltar, na do dia 16).** Confira `select periodo, count(*) from emplacamentos_segmentos group by 1 order by 1 desc limit 2;`. Se o mês mais recente de `emplacamentos` ainda não tem segmentos, rode `select interno.atualizar_segmentos_fenabrave();` (duas vezes, com alguns minutos entre elas). Se o ranking premium do mês (`fonte = 'bright_consulting'`) ainda não existe, procure a publicação da Bright Consulting e grave (RODADA 8).
@@ -301,5 +340,9 @@ A rotina roda numa sessão nova, sem memória das anteriores. Passos:
    `select v.slug, m.carplay, m.android_auto, m.carplay_cabo, m.carplay_sem_fio, m.android_auto_cabo, m.android_auto_sem_fio, m.tela_polegadas, (select count(*) from palhetas p where p.veiculo_id = v.id) as palhetas from veiculos v left join multimidias m on m.veiculo_id = v.id where v.situacao <> 'Descontinuado' order by (m.veiculo_id is null or m.carplay = 'nao_identificado' or m.android_auto = 'nao_identificado') desc, (m.carplay_sem_fio = 'nao_identificado' and m.android_auto_sem_fio = 'nao_identificado') desc, (m.carplay_cabo = 'nao_identificado' and m.android_auto_cabo = 'nao_identificado') desc, (select count(*) from palhetas p where p.veiculo_id = v.id) asc limit 25;`
    Pesquise e grave seguindo a RODADA 6 (fonte com link e trecho, confiança conforme o tipo de fonte, nunca deduzir).
 2b. **Fotos (na execução do dia 2).** Rode a conferência da RODADA 9 em todos os veículos e troque as fotos que falharem, além de dar foto aos modelos novos.
+2c. **Versões (em toda execução).** Todo veículo precisa da linha de versões (RODADA 11). Confira quem está sem e quem tem versão sem itens:
+   `select v.slug from veiculos v where not exists (select 1 from versoes x where x.veiculo_id = v.id);`
+   `select v.slug, x.nome from versoes x join veiculos v on v.id = x.veiculo_id where cardinality(x.itens_adicionais) = 0 order by 1;`
+   Grave as que faltam e, quando o ano-modelo virar (nova página 2027/2028 na Webmotors), regrave a linha inteira com a página nova (versões que saíram de linha somem do cadastro só por regravação completa; registre em `observacoes` o que mudou).
 3. **Limites.** No máximo ~150 chamadas de ferramenta. Nunca UPDATE/DELETE (use `insert ... on conflict`). Não mexa em código do site.
 4. **Fim.** Responda com um resumo curto: modelos novos cadastrados, veículos completados (o que entrou em cada um) e o que ficou sem fonte.
