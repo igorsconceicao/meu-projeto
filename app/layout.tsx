@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { PreviaVeiculoGlobal } from "@/components/catalogo/previa-veiculo";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -44,6 +45,7 @@ export default function RootLayout({
               </footer>
             </div>
           </div>
+          <PreviaVeiculoGlobal />
         </ThemeProvider>
       </body>
     </html>

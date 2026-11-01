@@ -5,6 +5,7 @@ import {
   FileText,
   LayoutDashboard,
   Lightbulb,
+  NotebookPen,
   Search,
   Settings,
 } from "lucide-react";
@@ -32,6 +33,7 @@ export const NAVEGACAO: GrupoNavegacao[] = [
       { titulo: "Início", descricao: "Busca e resumo", href: "/", icone: LayoutDashboard },
       { titulo: "Veículos", descricao: "CarPlay, Android Auto e palhetas", href: "/veiculos", icone: Car },
       { titulo: "Montadoras", descricao: "Modelos por marca", href: "/montadoras", icone: Building2 },
+      { titulo: "Diário de Bordo", descricao: "O que cada atualização trouxe", href: "/diario-de-bordo", icone: NotebookPen },
     ],
   },
   {

@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
           });
         }
       }
-      relatorio.sites.push({ url: f.url, status, erro, links: links.length, linhaBase, novos, removidos });
+      relatorio.sites.push({ url: f.url, montadoraId: f.montadora_id, status, erro, links: links.length, linhaBase, novos, removidos });
       if (!dryRun) {
         await supabase
           .from("monitor_fontes")
@@ -290,6 +290,36 @@ Deno.serve(async (req) => {
       .select("id");
     if (error) return new Response(JSON.stringify({ ok: false, erro: error.message }), { status: 500 });
     gravadas = data?.length ?? 0;
+  }
+
+  // Diário de Bordo: deixa registrado o que esta varredura olhou e encontrou.
+  if (!dryRun && acao === "tudo") {
+    const { data: marcas } = await supabase.from("montadoras").select("id, nome");
+    const nomeMarca = new Map((marcas ?? []).map((m: any) => [m.id, m.nome]));
+    const bloqueados = relatorio.sites.filter((s: any) => s.erro);
+    const rotulo = (n: any) => `${nomeMarca.get(n.montadora_id) ?? "Marca"}: ${n.titulo}`;
+    const novos = novidades.filter((n) => n.tipo === "link_novo");
+    const fora = novidades.filter((n) => n.tipo !== "link_novo");
+    await supabase.from("diario_bordo").insert({
+      tipo: "monitoramento",
+      titulo: "Varredura dos sites das montadoras",
+      resumo: novidades.length
+        ? `Os sites de ${relatorio.sites.length} marcas e ${relatorio.paginasVerificadas} páginas de modelos foram conferidos: ${novos.length} página(s) nova(s) e ${fora.length} página(s) que saíram do ar ou da vitrine.`
+        : `Os sites de ${relatorio.sites.length} marcas e ${relatorio.paginasVerificadas} páginas de modelos foram conferidos, sem novidades.`,
+      buscou: [
+        `Páginas de modelos nos sites oficiais de ${relatorio.sites.length} marcas`,
+        `Se as ${relatorio.paginasVerificadas} páginas oficiais dos modelos cadastrados continuam no ar`,
+      ],
+      encontrou: [...novos.map((n) => `Página nova — ${rotulo(n)}`), ...fora.map(rotulo)].slice(0, 30),
+      numeros: [
+        { rotulo: "Sites conferidos", valor: relatorio.sites.length },
+        { rotulo: "Páginas de modelos conferidas", valor: relatorio.paginasVerificadas },
+        { rotulo: "Páginas novas", valor: novos.length },
+        { rotulo: "Saíram do ar ou da vitrine", valor: fora.length },
+      ],
+      pendencias: bloqueados.map((s: any) => `${nomeMarca.get(s.montadoraId) ?? new URL(s.url).host}: site não pôde ser lido (${s.erro})`),
+      fontes: relatorio.sites.map((s: any) => s.url),
+    });
   }
 
   return new Response(

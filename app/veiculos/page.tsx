@@ -178,6 +178,7 @@ export default async function PaginaVeiculos({
                                 {porCategoria ? v.marca : v.categoria}
                               </span>
                               <span className="block font-medium">{v.nomeComercial}</span>
+                              <NomesVersoes nomes={(v.tecnicos?.versoes ?? []).map((x) => x.nome)} />
                             </span>
                           </span>
                           <Celula rotulo="Tela">{v.tecnicos?.multimidia?.telaPolegadas ?? <Vazio />}</Celula>
@@ -205,6 +206,23 @@ function Celula({ rotulo, children }: { rotulo: string; children: React.ReactNod
     <span className="min-w-0 text-sm">
       <span className="block text-[11px] text-muted-foreground md:hidden">{rotulo}</span>
       <span className={typeof children === "string" ? "line-clamp-2" : undefined}>{children}</span>
+    </span>
+  );
+}
+
+/** Quantas versões o modelo tem e os nomes delas, da de entrada à topo. */
+function NomesVersoes({ nomes }: { nomes: string[] }) {
+  if (!nomes.length) return null;
+  return (
+    <span className="mt-1 flex flex-wrap items-center gap-1">
+      <span className="rounded bg-primary/10 px-1.5 py-px text-[11px] font-semibold text-primary">
+        {nomes.length === 1 ? "Versão única" : `${nomes.length} versões`}
+      </span>
+      {nomes.map((n) => (
+        <span key={n} className="rounded border px-1.5 py-px text-[11px] text-muted-foreground">
+          {n}
+        </span>
+      ))}
     </span>
   );
 }

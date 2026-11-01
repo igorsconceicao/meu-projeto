@@ -345,4 +345,16 @@ A rotina roda numa sessão nova, sem memória das anteriores. Passos:
    `select v.slug, x.nome from versoes x join veiculos v on v.id = x.veiculo_id where cardinality(x.itens_adicionais) = 0 order by 1;`
    Grave as que faltam e, quando o ano-modelo virar (nova página 2027/2028 na Webmotors), regrave a linha inteira com a página nova (versões que saíram de linha somem do cadastro só por regravação completa; registre em `observacoes` o que mudou).
 3. **Limites.** No máximo ~150 chamadas de ferramenta. Nunca UPDATE/DELETE (use `insert ... on conflict`). Não mexa em código do site.
-4. **Fim.** Responda com um resumo curto: modelos novos cadastrados, veículos completados (o que entrou em cada um) e o que ficou sem fonte.
+4. **Diário de Bordo (obrigatório, último passo).** Registre a execução na aba "Diário de Bordo" do site, em linguagem simples para o usuário, só com números reais desta execução:
+   ```sql
+   insert into diario_bordo (tipo, titulo, resumo, buscou, encontrou, numeros, pendencias, fontes) values (
+     'rotina', 'Atualização quinzenal de <dd/mm>',
+     $t$<2–3 frases: o que mudou no mercado e no catálogo nesta execução>$t$,
+     array['<o que foi buscar, ex.: vendas de outubro na Fenabrave>', '<lacunas de CarPlay/palhetas/versões de N modelos>'],
+     array['<o que encontrou de novo, ex.: Hyundai i20 2027 cadastrado com 3 versões>', '<líder de vendas do mês: Modelo (N unidades)>'],
+     '[{"rotulo":"Modelos novos","valor":0},{"rotulo":"Veículos completados","valor":0},{"rotulo":"Versões gravadas","valor":0},{"rotulo":"Mês de vendas importado","valor":"out/2026"}]',
+     array['<o que ficou sem fonte ou bloqueado>'],
+     array['<urls principais consultadas>']);
+   ```
+   A varredura automática dos sites (dias 1 e 15) já grava o próprio registro, com tipo `monitoramento`.
+5. **Fim.** Responda com um resumo curto: modelos novos cadastrados, veículos completados (o que entrou em cada um) e o que ficou sem fonte.
