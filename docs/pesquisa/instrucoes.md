@@ -325,6 +325,12 @@ select interno.gravar_versoes('<slug>',
 - 76 versões estão sem lista de itens (a fonte só dá nome e preço). Em 17 modelos, nenhuma versão tem itens: audi-a6-e-tron, bmw-ix1, bmw-x3, bmw-x5, byd-shark, fiat-ducato, ford-f-150, ford-mustang-mach-e, gwm-haval-h7, honda-accord, honda-prelude, kia-sorento, land-rover-range-rover-sport, mercedes-benz-eqs, porsche-718-boxster, porsche-718-cayman e toyota-rav4. Prioridade do passo 2c.
 - Linhas `nao_confirmado` (pré-lançamento ou oferta BR incerta): renault-niagara, denza-z e renault-megane-e-tech. Regravar quando houver preço oficial no Brasil.
 
+### Situação em 02/11/2026 (rodada manual de palhetas/OEM/interruptores)
+- 186 de 269 com palheta, 27 com código OEM de palheta, 12 com interruptor de vidro.
+- Modelo novo derivado de outro (Kait = Kicks Play reestilizado; Dolphin SE = Dolphin com visual novo): pode usar a linha Wega do modelo de origem como `nao_confirmado`, citando na evidência a reportagem que mostra que o para-brisa/carroceria é o mesmo. Peça que mudou (ex.: tampa traseira nova) → não aplicar.
+- Mopar: o jogo dianteiro 7089943 (Valeo) serve Toro e Compass (fiatpecas.com.br). As páginas da Fiat Peças entregam a descrição só via JavaScript: use a ação `html` e procure `"sku":"<código>`; a aplicação vem do trecho do resultado de busca (`nao_confirmado`).
+- Becos sem saída (não repetir): Hyundai, Toyota e Honda não têm loja brasileira com código original na página; os códigos de lojas dos EUA (hondapartsnow, toyotapartsdeal) são de carros diferentes dos brasileiros (HR-V/Corolla Cross dos EUA) — não gravar. Montana 2023+ e Equinox: a Accioly GM ainda não vende o interruptor. Yaris Cross e Ram Dakota: nenhum catálogo de palheta (Wega 2026, Dyna 2025) lista ainda — tentar o Wega 2027 quando sair.
+
 ## ROTINA MENSAL (automática, dia 5 de cada mês — desde 02/11/2026)
 
 Uma única execução por mês, depois do fechamento do mês anterior: a Fenabrave publica o informativo
