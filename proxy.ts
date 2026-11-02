@@ -31,8 +31,7 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const papel = papelDasClaims(data?.claims);
   const caminho = request.nextUrl.pathname;
-  // O otimizador de fotos também é fechado: sem login, ninguém usa a cota do site.
-  const ehApi = caminho.startsWith("/api/") || caminho.startsWith("/_next/image");
+  const ehApi = caminho.startsWith("/api/");
 
   // Respostas de redirecionamento/erro levam junto os cookies renovados.
   const comCookies = (r: NextResponse) => {
@@ -64,7 +63,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/_next/image",
     "/((?!_next/static|_next/image|favicon.ico|icon.svg|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

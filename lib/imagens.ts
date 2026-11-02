@@ -1,9 +1,10 @@
 /**
  * Fotos dos sites oficiais passam pelo otimizador de imagens da Vercel: ela
  * baixa a foto da montadora uma vez, reduz para o tamanho exibido, converte
- * para WebP e guarda por 31 dias. Vale para qualquer site (inclusive os que a
- * rotina de pesquisa cadastrar no futuro). O otimizador só atende quem está
- * logado (ver proxy.ts), então ninguém de fora consegue usá-lo.
+ * para WebP e guarda por 31 dias. Os sites aceitos são os do catálogo,
+ * listados a cada deploy (next.config.ts); se um site novo ainda não estiver
+ * na lista, o otimizador recusa e a foto carrega direto da origem
+ * (ImagemRemota faz essa troca sozinho).
  *
  * Wikimedia Commons fica de fora: ele já entrega no tamanho pedido (width).
  */
