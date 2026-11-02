@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { HOSTS_OTIMIZADOS } from "./lib/imagens";
 
 const SUPABASE = "https://npmsgjpjfflawluyuisl.supabase.co";
 const dev = process.env.NODE_ENV !== "production";
@@ -13,7 +12,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  `connect-src 'self' ${SUPABASE}`,
+  `connect-src 'self' ${SUPABASE} https://api.pwnedpasswords.com`,
   "frame-src https://www.youtube-nocookie.com https://player.vimeo.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -25,7 +24,8 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   images: {
-    remotePatterns: HOSTS_OTIMIZADOS.map((hostname) => ({ protocol: "https" as const, hostname })),
+    // Qualquer foto https (sites oficiais). O endereço do otimizador exige login (proxy.ts).
+    remotePatterns: [{ protocol: "https", hostname: "**" }],
     // Poucas larguras = menos versões geradas de cada foto (mais rápido e dentro da cota gratuita).
     deviceSizes: [640, 828, 1200],
     imageSizes: [96, 320, 420],

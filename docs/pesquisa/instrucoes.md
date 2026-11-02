@@ -363,8 +363,15 @@ A rotina roda numa sessão nova, sem memória das anteriores. Passos:
 
 - O site inteiro exige login. Visitante sem login não vê nenhuma página nem consegue ler o banco com a chave pública.
 - Papéis ficam em `auth.users.raw_app_meta_data->>'papel'`: `admin` (lê e grava) ou `leitor` (só lê). Conta sem papel não vê nada.
-  Para liberar alguém só para leitura:
+- **Cadastro fechado** (gatilho `bloquear_cadastro_aberto` em `auth.users`): ninguém cria conta pelo site/API.
+  Para criar um usuário novo (só quando o dono pedir), na mesma transação:
+  `select set_config('app.liberar_novo_usuario', 'sim', true);` e então o `insert into auth.users` (+ `auth.identities`),
+  com `raw_app_meta_data` contendo `"papel":"leitor"` (ou `"admin"`), e-mail `<nome>@admin.local` e senha via `extensions.crypt(...)`.
+  Para mudar o papel de alguém que já existe:
   `update auth.users set raw_app_meta_data = raw_app_meta_data || '{"papel":"leitor"}' where email = '<nome>@admin.local';`
+- **Logo oficial pesado** (SVG com imagem gigante dentro): usar a função `preparar-logo`
+  (`select interno.chamar_funcao('preparar-logo', '{"url":"<arquivo oficial>","lado":112,"salvarComo":"<slug>.png"}')`),
+  conferir a `previa` e a `corMedia` na resposta, gravar a `urlPublica` em `logotipo_url` e citar o arquivo oficial em `logotipo_credito`.
 - **Tabela nova no `public`:** habilitar RLS e criar as mesmas 4 políticas por papel da migração
   `20261102090000_blindagem_parte2_acesso_por_papel.sql` (leitura com papel; inserir/alterar/excluir só admin).
   Se a tabela precisar aparecer nas listas do site, incluí-la também na função `site_catalogo`.

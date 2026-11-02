@@ -18,6 +18,29 @@ import { criarClienteSupabaseNavegador } from "@/lib/supabase/browser";
 
 const MIN_LEN = 8;
 
+/**
+ * Quantas vezes a senha já apareceu em vazamentos conhecidos (Have I Been Pwned).
+ * A senha não sai do computador: só os 5 primeiros caracteres do resumo SHA-1
+ * são enviados, e a comparação acontece aqui. Sem resposta do serviço → null.
+ */
+async function vezesVazada(senha: string): Promise<number | null> {
+  try {
+    const resumo = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(senha));
+    const hex = Array.from(new Uint8Array(resumo), (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+    const resp = await fetch(`https://api.pwnedpasswords.com/range/${hex.slice(0, 5)}`, {
+      headers: { "Add-Padding": "true" },
+    });
+    if (!resp.ok) return null;
+    for (const linha of (await resp.text()).split("\n")) {
+      const [sufixo, quantas] = linha.trim().split(":");
+      if (sufixo === hex.slice(5)) return Number(quantas) || 0;
+    }
+    return 0;
+  } catch {
+    return null;
+  }
+}
+
 export default function PaginaTrocarSenha() {
   const router = useRouter();
   const [atual, setAtual] = React.useState("");
@@ -48,6 +71,15 @@ export default function PaginaTrocarSenha() {
     }
 
     setCarregando(true);
+
+    const vazada = await vezesVazada(nova);
+    if (vazada) {
+      setErro(
+        `Essa senha já apareceu ${vazada.toLocaleString("pt-BR")} ${vazada === 1 ? "vez" : "vezes"} em vazamentos de dados na internet. Escolha outra.`,
+      );
+      setCarregando(false);
+      return;
+    }
 
     // Reautentica com a senha atual antes de trocar
     const { data: { user } } = await supabase.auth.getUser();
@@ -161,7 +193,8 @@ export default function PaginaTrocarSenha() {
                   required
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  Mínimo {MIN_LEN} caracteres.
+                  Mínimo {MIN_LEN} caracteres. Senhas que já vazaram na internet são recusadas
+                  (a conferência não envia a sua senha para lugar nenhum).
                 </p>
               </div>
               <div className="space-y-1">
