@@ -1,7 +1,7 @@
 # Instruções de pesquisa do catálogo
 
 Este arquivo é a referência para qualquer rodada de coleta de dados (manual ou
-pela rotina automática quinzenal). Ele acumula as regras das rodadas 1 a 9:
+pela rotina automática mensal, dia 5). Ele acumula as regras das rodadas 1 a 9:
 **as seções "RODADA 6" a "RODADA 9" são as que valem hoje** e
 prevalecem sobre as anteriores.
 Em `consultado_em` e `verificado_br_em` use sempre a data do dia da coleta.
@@ -325,30 +325,33 @@ select interno.gravar_versoes('<slug>',
 - 76 versões estão sem lista de itens (a fonte só dá nome e preço). Em 17 modelos, nenhuma versão tem itens: audi-a6-e-tron, bmw-ix1, bmw-x3, bmw-x5, byd-shark, fiat-ducato, ford-f-150, ford-mustang-mach-e, gwm-haval-h7, honda-accord, honda-prelude, kia-sorento, land-rover-range-rover-sport, mercedes-benz-eqs, porsche-718-boxster, porsche-718-cayman e toyota-rav4. Prioridade do passo 2c.
 - Linhas `nao_confirmado` (pré-lançamento ou oferta BR incerta): renault-niagara, denza-z e renault-megane-e-tech. Regravar quando houver preço oficial no Brasil.
 
-## ROTINA QUINZENAL (automática, dias 2 e 16 de cada mês)
+## ROTINA MENSAL (automática, dia 5 de cada mês — desde 02/11/2026)
 
-A rotina roda numa sessão nova, sem memória das anteriores. Passos:
+Uma única execução por mês, depois do fechamento do mês anterior: a Fenabrave publica o informativo
+nos primeiros dias úteis (a importação automática tenta todo dia de 1 a 15 até achar), e a varredura
+dos sites das marcas roda no dia 4. A rotina do dia 5 junta tudo: vendas do mês fechado, novidades,
+análise e lacunas. Roda numa sessão nova, sem memória das anteriores. Passos:
 
-1. **Novos modelos.** O monitoramento (`monitorar-novidades`, dias 1 e 15) grava em `monitor_novidades` os links de modelo novos nos sites das marcas:
+1. **Novos modelos.** O monitoramento (`monitorar-novidades`, dia 4) grava em `monitor_novidades` os links de modelo novos nos sites das marcas:
    `select n.id, m.slug as marca, n.titulo, n.url from monitor_novidades n left join montadoras m on m.id = n.montadora_id where n.status = 'pendente' and n.tipo = 'link_novo' order by n.detectado_em;`
    Para cada um que seja de fato um modelo novo vendido no Brasil (não versão, campanha ou página institucional), cadastre o veículo (template da rodada 2, foto opcional), colete multimídia e palhetas (rodada 6) e **grave as versões, da de entrada à topo (RODADA 11 — obrigatório)**. Depois marque a novidade:
    `insert into monitor_novidades (id, tipo, titulo, url) select id, tipo, titulo, url from monitor_novidades where id = '<id>' on conflict (id) do update set status = 'resolvido', resolvido_em = now();`
    (ou `status = 'ignorado'` quando não for modelo). Novidades `link_removido`/`pagina_fora_do_ar` ficam para revisão humana.
-0. **Vendas do mês (na execução do dia 2 e, se faltar, na do dia 16).** Confira `select periodo, count(*) from emplacamentos_segmentos group by 1 order by 1 desc limit 2;`. Se o mês mais recente de `emplacamentos` ainda não tem segmentos, rode `select interno.atualizar_segmentos_fenabrave();` (duas vezes, com alguns minutos entre elas). Se o ranking premium do mês (`fonte = 'bright_consulting'`) ainda não existe, procure a publicação da Bright Consulting e grave (RODADA 8).
+0. **Vendas do mês fechado (sempre).** Confira se o mês anterior já está em `emplacamentos` (`select max(periodo) from emplacamentos;`); se não estiver, rode `select interno.chamar_funcao('importar-fenabrave', '{}'::jsonb);` e confira de novo depois de alguns minutos (se a Fenabrave ainda não publicou, registre isso nas pendências do Diário). Confira `select periodo, count(*) from emplacamentos_segmentos group by 1 order by 1 desc limit 2;`. Se o mês mais recente de `emplacamentos` ainda não tem segmentos, rode `select interno.atualizar_segmentos_fenabrave();` (duas vezes, com alguns minutos entre elas). Se o ranking premium do mês (`fonte = 'bright_consulting'`) ainda não existe, procure a publicação da Bright Consulting e grave (RODADA 8).
 1b. **Mais vendidos fora do catálogo.** Cadastre os modelos do top 10 de cada categoria da página inicial que ainda não estão no catálogo (lista atual na RODADA 8).
-2. **Lacunas de dados (prioridade do usuário: zerar as pendências).** Escolha até 25 veículos, nesta ordem: sem CarPlay/Android Auto identificado (inclui as marcas premium); sem informação de sem fio; sem informação de cabo (Streambox — siga a RODADA 7); sem palhetas ou sem OEM de palheta. Comece pelos mais vendidos. Além dos sites oficiais e da imprensa, procure em fóruns de donos, vídeos do YouTube (título e descrição) e no Google; esses valem só como `nao_confirmado`, com o link e o trecho, marcados "(fórum)", "(vídeo)" ou "(trecho do resultado de busca)". Na execução seguinte, tente trocar uma fonte `nao_confirmado` por uma oficial.
+2. **Lacunas de dados (prioridade do usuário: zerar as pendências).** Escolha até 40 veículos, nesta ordem: sem CarPlay/Android Auto identificado (inclui as marcas premium); sem informação de sem fio; sem informação de cabo (Streambox — siga a RODADA 7); sem palhetas (medida dianteira/traseira e encaixe — catálogos Wega e Dyna já guardados no banco, RODADA 9/10); sem código OEM de palheta; sem interruptores de vidro (posição, tipo e código OEM — RODADA 10). Comece pelos mais vendidos do mês fechado. Além dos sites oficiais e da imprensa, procure em fóruns de donos, vídeos do YouTube (título e descrição) e no Google; esses valem só como `nao_confirmado`, com o link e o trecho, marcados "(fórum)", "(vídeo)" ou "(trecho do resultado de busca)". Na execução seguinte, tente trocar uma fonte `nao_confirmado` por uma oficial.
    `select v.slug, m.carplay, m.android_auto, m.carplay_cabo, m.carplay_sem_fio, m.android_auto_cabo, m.android_auto_sem_fio, m.tela_polegadas, (select count(*) from palhetas p where p.veiculo_id = v.id) as palhetas from veiculos v left join multimidias m on m.veiculo_id = v.id where v.situacao <> 'Descontinuado' order by (m.veiculo_id is null or m.carplay = 'nao_identificado' or m.android_auto = 'nao_identificado') desc, (m.carplay_sem_fio = 'nao_identificado' and m.android_auto_sem_fio = 'nao_identificado') desc, (m.carplay_cabo = 'nao_identificado' and m.android_auto_cabo = 'nao_identificado') desc, (select count(*) from palhetas p where p.veiculo_id = v.id) asc limit 25;`
    Pesquise e grave seguindo a RODADA 6 (fonte com link e trecho, confiança conforme o tipo de fonte, nunca deduzir).
-2b. **Fotos (na execução do dia 2).** Rode a conferência da RODADA 9 em todos os veículos e troque as fotos que falharem, além de dar foto aos modelos novos.
+2b. **Fotos (em toda execução).** Rode a conferência da RODADA 9 em todos os veículos e troque as fotos que falharem, além de dar foto aos modelos novos.
 2c. **Versões (em toda execução).** Todo veículo precisa da linha de versões (RODADA 11). Confira quem está sem e quem tem versão sem itens:
    `select v.slug from veiculos v where not exists (select 1 from versoes x where x.veiculo_id = v.id);`
    `select v.slug, x.nome from versoes x join veiculos v on v.id = x.veiculo_id where cardinality(x.itens_adicionais) = 0 order by 1;`
    Grave as que faltam e, quando o ano-modelo virar (nova página 2027/2028 na Webmotors), regrave a linha inteira com a página nova (versões que saíram de linha somem do cadastro só por regravação completa; registre em `observacoes` o que mudou).
-3. **Limites.** No máximo ~150 chamadas de ferramenta. Nunca UPDATE/DELETE (use `insert ... on conflict`). Não mexa em código do site.
+3. **Limites.** No máximo ~250 chamadas de ferramenta (é a única execução do mês). Nunca UPDATE/DELETE (use `insert ... on conflict`). Não mexa em código do site.
 4. **Diário de Bordo (obrigatório, último passo).** Registre a execução na aba "Diário de Bordo" do site, em linguagem simples para o usuário, só com números reais desta execução:
    ```sql
    insert into diario_bordo (tipo, titulo, resumo, buscou, encontrou, numeros, pendencias, fontes) values (
-     'rotina', 'Atualização quinzenal de <dd/mm>',
+     'rotina', 'Atualização mensal de <mês/ano do fechamento>',
      $t$<2–3 frases: o que mudou no mercado e no catálogo nesta execução>$t$,
      array['<o que foi buscar, ex.: vendas de outubro na Fenabrave>', '<lacunas de CarPlay/palhetas/versões de N modelos>'],
      array['<o que encontrou de novo, ex.: Hyundai i20 2027 cadastrado com 3 versões>', '<líder de vendas do mês: Modelo (N unidades)>'],
@@ -356,7 +359,7 @@ A rotina roda numa sessão nova, sem memória das anteriores. Passos:
      array['<o que ficou sem fonte ou bloqueado>'],
      array['<urls principais consultadas>']);
    ```
-   A varredura automática dos sites (dias 1 e 15) já grava o próprio registro, com tipo `monitoramento`.
+   A varredura automática dos sites (dia 4) já grava o próprio registro, com tipo `monitoramento`.
 5. **Fim.** Responda com um resumo curto: modelos novos cadastrados, veículos completados (o que entrou em cada um) e o que ficou sem fonte.
 
 ## Segurança do acesso (desde 2026-11-02)

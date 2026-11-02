@@ -270,7 +270,7 @@ export default async function PaginaFichaVeiculo({
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">O que ainda falta neste modelo</CardTitle>
-            <CardDescription>Entra na próxima atualização quinzenal assim que houver fonte.</CardDescription>
+            <CardDescription>Entra na próxima atualização mensal (dia 5) assim que houver fonte.</CardDescription>
           </CardHeader>
           <CardContent>
             <ListaChecklist itens={pendentes} className="sm:grid-cols-2" />

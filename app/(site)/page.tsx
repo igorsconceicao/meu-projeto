@@ -257,7 +257,7 @@ export default async function PaginaInicio() {
           <p className="font-medium">Como os dados são coletados</p>
           <p className="mt-2 text-muted-foreground">
             Cada informação guarda o link e o trecho da fonte. Na ficha, a etiqueta mostra o tipo de fonte: fonte oficial, imprensa/catálogo
-            ou internet (a conferir). A busca por novos modelos, vendas e dados roda automaticamente duas vezes por mês.
+            ou internet (a conferir). A busca por novos modelos, vendas e dados roda automaticamente uma vez por mês, no dia 5, com o fechamento do mês anterior.
           </p>
         </div>
       </section>

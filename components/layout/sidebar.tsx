@@ -87,7 +87,7 @@ export function Sidebar({
       </nav>
       <div className="border-t px-4 py-3 text-xs text-muted-foreground">
         <p className="font-medium text-foreground">Cada dado com fonte e data</p>
-        <p>Atualização automática duas vezes por mês</p>
+        <p>Atualização automática todo dia 5</p>
       </div>
     </aside>
   );
