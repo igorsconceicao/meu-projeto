@@ -11,7 +11,7 @@ import type {
   Versao,
 } from "@/lib/tipos";
 
-type Linha = Record<string, unknown> & { veiculo_id: string };
+export type Linha = Record<string, unknown> & { veiculo_id: string };
 
 const TABELAS = [
   "fichas_tecnicas",
@@ -22,11 +22,12 @@ const TABELAS = [
   "versoes",
   "linhas_versoes",
 ] as const;
+export type Tabela = (typeof TABELAS)[number];
 
 // O PostgREST do Supabase devolve no máximo 1000 linhas por pedido.
 const PAGINA = 1000;
 // Coluna única de cada tabela, para a paginação não pular nem repetir linhas.
-const CHAVE: Record<(typeof TABELAS)[number], string> = {
+const CHAVE: Record<Tabela, string> = {
   fichas_tecnicas: "veiculo_id",
   multimidias: "veiculo_id",
   iluminacao: "id",
@@ -175,19 +176,23 @@ export async function buscarDadosTecnicos(
   veiculoId?: string,
 ): Promise<Map<string, DadosTecnicos>> {
   const supabase = await criarClienteSupabaseServidor();
-  const ler = async (tabela: (typeof TABELAS)[number]) => {
+  const ler = async (tabela: Tabela): Promise<Linha[]> => {
     const linhas: Linha[] = [];
     for (let de = 0; ; de += PAGINA) {
       let q = supabase.from(tabela).select("*");
       if (veiculoId) q = q.eq("veiculo_id", veiculoId);
       const { data, error } = await q.order(CHAVE[tabela]).range(de, de + PAGINA - 1);
-      if (error) return { data: null, error };
+      if (error) throw error;
       linhas.push(...((data ?? []) as Linha[]));
-      if ((data ?? []).length < PAGINA) return { data: linhas, error: null };
+      if ((data ?? []).length < PAGINA) return linhas;
     }
   };
   const resultados = await Promise.all(TABELAS.map(ler));
+  return agruparTecnicos(Object.fromEntries(TABELAS.map((t, i) => [t, resultados[i]])));
+}
 
+/** Monta o mapa veiculo_id → DadosTecnicos a partir das linhas de cada tabela. */
+export function agruparTecnicos(porTabela: Partial<Record<Tabela, Linha[]>>): Map<string, DadosTecnicos> {
   const mapa = new Map<string, DadosTecnicos>();
   const obter = (id: string) => {
     let d = mapa.get(id);
@@ -198,11 +203,10 @@ export async function buscarDadosTecnicos(
     return d;
   };
 
-  resultados.forEach(({ data, error }, i) => {
-    if (error) throw error;
-    for (const r of (data ?? []) as Linha[]) {
+  for (const tabela of TABELAS) {
+    for (const r of porTabela[tabela] ?? []) {
       const d = obter(r.veiculo_id);
-      switch (TABELAS[i]) {
+      switch (tabela) {
         case "fichas_tecnicas":
           d.ficha = mapearFicha(r);
           break;
@@ -226,7 +230,7 @@ export async function buscarDadosTecnicos(
           break;
       }
     }
-  });
+  }
 
   for (const d of mapa.values()) {
     d.iluminacao.sort((a, b) => ordemIluminacao(a.posicao) - ordemIluminacao(b.posicao));

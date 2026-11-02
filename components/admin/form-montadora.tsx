@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LogoMontadora } from "@/components/midia/logo-montadora";
-import { salvarMontadora } from "@/app/admin/acoes";
+import { salvarMontadora } from "@/app/(site)/admin/acoes";
 import type { Montadora } from "@/lib/tipos";
 
 export function FormMontadora({ montadora }: { montadora: Montadora | null }) {

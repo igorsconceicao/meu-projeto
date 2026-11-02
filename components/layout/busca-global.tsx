@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Building2, Car, Cpu, Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { ImagemRemota } from "@/components/midia/imagem-remota";
 
 type Sugestoes = {
   montadoras: { slug: string; nome: string; logotipoUrl: string | null; modelos: number }[];
@@ -165,10 +166,9 @@ export function BuscaGlobal() {
                       i === ativo ? "bg-accent" : "hover:bg-accent",
                     )}
                   >
-                    <span className="flex h-8 w-12 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
+                    <span className="relative flex h-8 w-12 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
                       {it.imagem ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={it.imagem} alt="" className="h-full w-full object-contain" loading="lazy" />
+                        <ImagemRemota src={it.imagem} alt="" sizes="48px" larguraCommons={120} className="object-contain" />
                       ) : (
                         <it.icone className="h-4 w-4 text-muted-foreground" />
                       )}

@@ -6,8 +6,19 @@ import { Gauge } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAVEGACAO } from "./navegacao";
 
-export function Sidebar({ className, aoNavegar }: { className?: string; aoNavegar?: () => void }) {
+export function Sidebar({
+  className,
+  aoNavegar,
+  admin = false,
+}: {
+  className?: string;
+  aoNavegar?: () => void;
+  admin?: boolean;
+}) {
   const caminho = usePathname();
+  const grupos = NAVEGACAO.map((g) => ({ ...g, itens: g.itens.filter((i) => admin || !i.soAdmin) })).filter(
+    (g) => g.itens.length,
+  );
 
   return (
     <aside
@@ -28,7 +39,7 @@ export function Sidebar({ className, aoNavegar }: { className?: string; aoNavega
         </div>
       </Link>
       <nav className="flex-1 overflow-y-auto px-3 py-4">
-        {NAVEGACAO.map((grupo) => (
+        {grupos.map((grupo) => (
           <div key={grupo.titulo} className="mb-6">
             <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               {grupo.titulo}
@@ -57,7 +68,7 @@ export function Sidebar({ className, aoNavegar }: { className?: string; aoNavega
                         <span className="flex items-center gap-1.5 font-medium">
                           {item.titulo}
                           {item.emBreve ? (
-                            <span className="rounded bg-muted px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                            <span className="rounded bg-muted px-1 py-px text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                               em breve
                             </span>
                           ) : null}

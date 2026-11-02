@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Check, Loader2, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { marcarNovidade } from "@/app/admin/novidades/acoes";
+import { marcarNovidade } from "@/app/(site)/admin/novidades/acoes";
 
 export function BotoesNovidade({ id, status }: { id: string; status: string }) {
   const [pendente, iniciar] = React.useTransition();

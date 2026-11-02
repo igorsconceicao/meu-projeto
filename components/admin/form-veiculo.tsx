@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { FotoVeiculo } from "@/components/midia/foto-veiculo";
-import { salvarVeiculo } from "@/app/admin/acoes";
+import { salvarVeiculo } from "@/app/(site)/admin/acoes";
 import type {
   CategoriaVeiculo,
   Montadora,

@@ -1,5 +1,7 @@
+import { cache } from "react";
+import { exigirSessao } from "@/lib/auth/sessao";
+import { lerCatalogo } from "@/lib/dados/catalogo";
 import { buscarVeiculos } from "@/lib/dados/veiculos";
-import { criarClienteSupabaseServidor } from "@/lib/supabase/server";
 import type { Montadora } from "@/lib/tipos";
 
 type MontadoraRow = {
@@ -38,16 +40,12 @@ function mapearMontadora(
   };
 }
 
-export async function buscarMontadoras(): Promise<Montadora[]> {
-  const supabase = await criarClienteSupabaseServidor();
-  const { data: montadoras, error } = await supabase
-    .from("montadoras")
-    .select("*")
-    .order("nome");
-  if (error) throw error;
+/** Marcas em ordem alfabética, com a contagem de modelos (do catálogo em cache). */
+export const buscarMontadoras = cache(async function buscarMontadoras(): Promise<Montadora[]> {
+  await exigirSessao();
+  const [catalogo, veiculos] = await Promise.all([lerCatalogo(), buscarVeiculos()]);
 
   // Contagem por montadora: publicados (pacote mínimo completo) × em verificação
-  const veiculos = await buscarVeiculos();
   const publicados = new Map<string, number>();
   const emVerificacao = new Map<string, number>();
   for (const v of veiculos) {
@@ -55,24 +53,7 @@ export async function buscarMontadoras(): Promise<Montadora[]> {
     alvo.set(v.montadoraId, (alvo.get(v.montadoraId) ?? 0) + 1);
   }
 
-  return (montadoras ?? []).map((m) =>
-    mapearMontadora(
-      m as MontadoraRow,
-      publicados.get(m.id) ?? 0,
-      emVerificacao.get(m.id) ?? 0,
-    ),
+  return (catalogo.montadoras as unknown as MontadoraRow[]).map((m) =>
+    mapearMontadora(m, publicados.get(m.id) ?? 0, emVerificacao.get(m.id) ?? 0),
   );
-}
-
-export async function buscarMontadoraPorSlug(
-  slug: string,
-): Promise<Montadora | null> {
-  const supabase = await criarClienteSupabaseServidor();
-  const { data, error } = await supabase
-    .from("montadoras")
-    .select("*")
-    .eq("slug", slug)
-    .maybeSingle();
-  if (error) throw error;
-  return data ? mapearMontadora(data as MontadoraRow) : null;
-}
+});

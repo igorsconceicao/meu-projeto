@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { excluirMontadora, excluirVeiculo } from "@/app/admin/acoes";
+import { excluirMontadora, excluirVeiculo } from "@/app/(site)/admin/acoes";
 
 function BotaoExcluir({
   nome,

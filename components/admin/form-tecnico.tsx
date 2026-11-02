@@ -8,7 +8,7 @@ import {
   excluirDadoTecnico,
   salvarDadoTecnico,
   type ResultadoTecnico,
-} from "@/app/admin/tecnicos/acoes";
+} from "@/app/(site)/admin/tecnicos/acoes";
 import {
   CAMPOS_TECNICOS,
   CONFIANCAS,

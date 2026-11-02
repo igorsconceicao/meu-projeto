@@ -19,6 +19,8 @@ export type ItemNavegacao = {
   emBreve?: boolean;
   /** Outras rotas que deixam este item marcado como ativo */
   tambem?: string[];
+  /** Só aparece para quem tem papel de administrador */
+  soAdmin?: boolean;
 };
 
 export type GrupoNavegacao = {
@@ -52,9 +54,9 @@ export const NAVEGACAO: GrupoNavegacao[] = [
   {
     titulo: "Mais",
     itens: [
-      { titulo: "Relatórios e planilha", descricao: "Baixar dados em Excel", href: "/relatorios", icone: FileText },
+      { titulo: "Relatórios", descricao: "Histórico e planilha", href: "/relatorios", icone: FileText },
       { titulo: "Busca por código", descricao: "Lâmpadas, palhetas e OEM", href: "/busca-oem", icone: Search },
-      { titulo: "Administração", descricao: "Cadastro e novidades", href: "/admin", icone: Settings },
+      { titulo: "Administração", descricao: "Cadastro e novidades", href: "/admin", icone: Settings, soAdmin: true },
     ],
   },
 ];

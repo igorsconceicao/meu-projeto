@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { buscarVeiculoPorSlug } from "@/lib/dados/veiculos";
+import { buscarVeiculos } from "@/lib/dados/veiculos";
 import { resumoPalhetas } from "@/lib/palhetas";
 import type { EstadoConectividade } from "@/lib/tipos";
 
@@ -9,9 +9,10 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const slug = new URL(req.url).searchParams.get("slug")?.slice(0, 120) ?? "";
   if (!/^[a-z0-9-]+$/.test(slug)) return NextResponse.json({ erro: "slug-invalido" }, { status: 400 });
-  const r = await buscarVeiculoPorSlug(slug);
-  if (!r) return NextResponse.json({ erro: "nao-encontrado" }, { status: 404 });
-  const { veiculo: v, tecnicos: t } = r;
+  // Vem do catálogo em cache: responde em milissegundos, sem ir ao banco.
+  const v = (await buscarVeiculos()).find((x) => x.slug === slug);
+  if (!v?.tecnicos) return NextResponse.json({ erro: "nao-encontrado" }, { status: 404 });
+  const t = v.tecnicos;
   const mm = t.multimidia;
   const estado = (e: EstadoConectividade | undefined) => e ?? "nao_identificado";
   const pal = resumoPalhetas(t.palhetas);
@@ -30,6 +31,7 @@ export async function GET(req: Request) {
       palhetas: { dianteira: pal.dianteira, traseira: pal.traseira },
       motor: t.ficha?.motor ?? null,
     },
-    { headers: { "Cache-Control": "public, s-maxage=600, stale-while-revalidate=3600" } },
+    // Só o navegador de quem está logado guarda; nenhuma CDN/proxy no meio.
+    { headers: { "Cache-Control": "private, max-age=300" } },
   );
 }

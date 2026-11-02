@@ -1,5 +1,5 @@
-import { buscarVeiculos } from "@/lib/dados/veiculos";
-import { criarClienteSupabaseServidor } from "@/lib/supabase/server";
+import { sessaoAtual } from "@/lib/auth/sessao";
+import { buscarVeiculosCompletos } from "@/lib/dados/veiculos";
 import type { EstadoConectividade, Veiculo } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -80,20 +80,17 @@ function celula(valor: string | number | null | undefined): string {
 
 /**
  * Exporta o catálogo técnico como planilha CSV (abre direto no Excel).
- * Padrão: só os modelos publicados. `?incluir=todos` (somente admin logado)
- * inclui também os modelos em verificação.
+ * Somente administrador (o proxy barra os demais e a função confere de novo).
+ * Padrão: só os modelos publicados; `?incluir=todos` traz também os em verificação.
  */
 export async function GET(req: Request) {
-  let incluirTodos = new URL(req.url).searchParams.get("incluir") === "todos";
-  if (incluirTodos) {
-    const supabase = await criarClienteSupabaseServidor();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) incluirTodos = false;
+  const sessao = await sessaoAtual();
+  if (sessao?.papel !== "admin") {
+    return Response.json({ erro: "sem-permissao" }, { status: 403 });
   }
+  const incluirTodos = new URL(req.url).searchParams.get("incluir") === "todos";
 
-  const veiculos = (await buscarVeiculos())
+  const veiculos = (await buscarVeiculosCompletos())
     .filter((v) => incluirTodos || v.completude?.publicavel)
     .sort((a, b) => a.marca.localeCompare(b.marca) || a.nomeComercial.localeCompare(b.nomeComercial));
 
@@ -109,6 +106,7 @@ export async function GET(req: Request) {
     headers: {
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": `attachment; filename="${nome}"`,
+      "cache-control": "private, no-store",
     },
   });
 }

@@ -358,3 +358,15 @@ A rotina roda numa sessão nova, sem memória das anteriores. Passos:
    ```
    A varredura automática dos sites (dias 1 e 15) já grava o próprio registro, com tipo `monitoramento`.
 5. **Fim.** Responda com um resumo curto: modelos novos cadastrados, veículos completados (o que entrou em cada um) e o que ficou sem fonte.
+
+## Segurança do acesso (desde 2026-11-02)
+
+- O site inteiro exige login. Visitante sem login não vê nenhuma página nem consegue ler o banco com a chave pública.
+- Papéis ficam em `auth.users.raw_app_meta_data->>'papel'`: `admin` (lê e grava) ou `leitor` (só lê). Conta sem papel não vê nada.
+  Para liberar alguém só para leitura:
+  `update auth.users set raw_app_meta_data = raw_app_meta_data || '{"papel":"leitor"}' where email = '<nome>@admin.local';`
+- **Tabela nova no `public`:** habilitar RLS e criar as mesmas 4 políticas por papel da migração
+  `20261102090000_blindagem_parte2_acesso_por_papel.sql` (leitura com papel; inserir/alterar/excluir só admin).
+  Se a tabela precisar aparecer nas listas do site, incluí-la também na função `site_catalogo`.
+- As listas do site leem um catálogo guardado em cache por 10 minutos. Dados gravados pela rotina aparecem em até 10 minutos; o que é salvo pelo painel admin aparece na hora.
+- Nunca expor a chave `site-catalogo` (tabela `chaves_internas`) em commit, relatório ou resposta.

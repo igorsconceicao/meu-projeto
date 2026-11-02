@@ -5,8 +5,17 @@ import { ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { corDaMarca } from "@/lib/cores-marca";
 import { IconeVeiculo } from "./icone-veiculo";
+import { ImagemRemota } from "./imagem-remota";
 
 export type ProporcaoFoto = "16/9" | "4/3" | "1/1" | "3/2";
+
+/** Onde a foto aparece: define o tamanho baixado (nada de foto de 4 MB num card). */
+export type TamanhoFoto = "card" | "destaque";
+
+const TAMANHO: Record<TamanhoFoto, { sizes: string; commons: number }> = {
+  card: { sizes: "(max-width: 640px) 100vw, 320px", commons: 500 },
+  destaque: { sizes: "(max-width: 640px) 100vw, 420px", commons: 960 },
+};
 
 const PROPORCAO: Record<ProporcaoFoto, string> = {
   "16/9": "aspect-video",
@@ -22,6 +31,7 @@ export function FotoVeiculo({
   fotoUrl,
   montadoraSlug,
   proporcao = "16/9",
+  tamanho = "card",
   className,
   mostrarAviso = true,
 }: {
@@ -31,13 +41,13 @@ export function FotoVeiculo({
   fotoUrl?: string | null;
   montadoraSlug?: string | null;
   proporcao?: ProporcaoFoto;
+  tamanho?: TamanhoFoto;
   className?: string;
   mostrarAviso?: boolean;
 }) {
-  const [erroImg, setErroImg] = React.useState(false);
+  const [erroImg, setErroImg] = React.useState<string | null>(null);
   const [inteira, setInteira] = React.useState(false);
-  const imgRef = React.useRef<HTMLImageElement>(null);
-  const temFoto = Boolean(fotoUrl) && !erroImg;
+  const temFoto = Boolean(fotoUrl) && erroImg !== fotoUrl;
 
   // Recortes de produto muito largos (e fotos em pé) perderiam a frente e a traseira no 16:9:
   // nesses casos a foto aparece inteira, com faixas neutras.
@@ -45,12 +55,6 @@ export function FotoVeiculo({
     const { naturalWidth: w, naturalHeight: h } = img;
     if (w && h) setInteira(w / h > 2.15 || w / h < 1);
   }, []);
-
-  // A imagem pode terminar de carregar antes da hidratação, quando o onLoad já passou.
-  React.useEffect(() => {
-    const img = imgRef.current;
-    if (img?.complete) ajustar(img);
-  }, [ajustar, fotoUrl]);
 
   if (temFoto) {
     return (
@@ -61,15 +65,16 @@ export function FotoVeiculo({
           className,
         )}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          ref={imgRef}
+        <ImagemRemota
+          key={fotoUrl!}
           src={fotoUrl!}
-          alt={`${nome}`}
-          className={cn("h-full w-full", inteira ? "object-contain" : "object-cover")}
-          loading="lazy"
-          onLoad={(e) => ajustar(e.currentTarget)}
-          onError={() => setErroImg(true)}
+          alt={nome}
+          sizes={TAMANHO[tamanho].sizes}
+          larguraCommons={TAMANHO[tamanho].commons}
+          prioridade={tamanho === "destaque"}
+          className={inteira ? "object-contain" : "object-cover"}
+          onCarregar={ajustar}
+          onFalha={() => setErroImg(fotoUrl!)}
         />
       </div>
     );
@@ -106,7 +111,7 @@ export function FotoVeiculo({
           className="h-12 w-12 text-white/90 drop-shadow"
         />
         {mostrarAviso ? (
-          <div className="flex items-center gap-1.5 rounded-full border border-white/30 bg-black/30 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white/90 backdrop-blur-sm">
+          <div className="flex items-center gap-1.5 rounded-full border border-white/30 bg-black/30 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-white/90 backdrop-blur-sm">
             <ImageOff className="h-3 w-3" />
             Foto a confirmar
           </div>

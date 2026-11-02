@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
-import { PreviaVeiculoGlobal } from "@/components/catalogo/previa-veiculo";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -17,8 +14,9 @@ export const metadata: Metadata = {
     default: "Inteligência Automotiva Brasil",
     template: "%s · Inteligência Automotiva Brasil",
   },
-  description:
-    "Plataforma de inteligência de mercado automotivo brasileiro: lançamentos, multimídia, lâmpadas, palhetas, códigos OEM, vendas e oportunidades de inovação.",
+  description: "Plataforma interna de inteligência automotiva. Acesso restrito.",
+  // Uso interno: nada de Google, Bing ou prévias de link mostrando o conteúdo.
+  robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
 };
 
 export default function RootLayout({
@@ -27,25 +25,8 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <div className="flex min-h-screen">
-            <Sidebar className="hidden md:flex" />
-            <div className="flex min-h-screen flex-1 flex-col">
-              <Header />
-              <main className="flex-1 px-4 py-6 md:px-8 md:py-8">
-                <div className="mx-auto w-full max-w-7xl">{children}</div>
-              </main>
-              <footer className="border-t px-4 py-4 text-center text-xs text-muted-foreground md:px-8">
-                Plataforma interna · cada dado tem fonte, data de consulta e tipo de fonte indicados
-              </footer>
-            </div>
-          </div>
-          <PreviaVeiculoGlobal />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          {children}
         </ThemeProvider>
       </body>
     </html>

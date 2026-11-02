@@ -16,7 +16,7 @@ export type Movimento = {
 const SEM_CADASTRO = "Marcas fora do catálogo";
 
 /** Meses com ranking mensal, do mais antigo ao mais recente. */
-export function mesesMensais(e: Emplacamento[]): string[] {
+function mesesMensais(e: Emplacamento[]): string[] {
   return [...new Set(e.filter((x) => x.tipo === "mensal").map((x) => x.periodo))].sort();
 }
 
@@ -109,7 +109,7 @@ export function variacaoPorMarca(e: Emplacamento[]) {
 }
 
 /** Maior tela citada na fonte (ex.: '10,1" (GL) / 12,8" (GS)' → 12,8). */
-export function maiorTela(texto: string | null | undefined): number | null {
+function maiorTela(texto: string | null | undefined): number | null {
   if (!texto) return null;
   const n = [...texto.matchAll(/(\d{1,2}(?:[.,]\d{1,2})?)\s*(?:"|”|''|pol)/g)].map((m) => Number(m[1].replace(",", ".")));
   const validos = n.filter((x) => x >= 5 && x <= 20);

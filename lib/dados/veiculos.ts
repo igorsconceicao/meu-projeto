@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { avaliarCompletude } from "@/lib/completude";
-import { buscarDadosTecnicos, dadosTecnicosVazios } from "@/lib/dados/tecnicos";
+import { exigirSessao } from "@/lib/auth/sessao";
+import { lerCatalogo } from "@/lib/dados/catalogo";
+import { agruparTecnicos, buscarDadosTecnicos, dadosTecnicosVazios } from "@/lib/dados/tecnicos";
 import { criarClienteSupabaseServidor } from "@/lib/supabase/server";
 import type { DadosTecnicos, Veiculo } from "@/lib/tipos";
 
@@ -81,8 +83,38 @@ const SELECT_COM_MONTADORA = `
   )
 `;
 
-/** Todos os veículos (inclusive em verificação), com o checklist de completude. */
+function montarVeiculos(rows: VeiculoRow[], tecnicos: Map<string, DadosTecnicos>): Veiculo[] {
+  return rows.map((row) => {
+    const v = mapearVeiculo(row);
+    v.tecnicos = tecnicos.get(v.id) ?? dadosTecnicosVazios();
+    v.completude = avaliarCompletude(v, v.tecnicos);
+    return v;
+  });
+}
+
+/**
+ * Todos os veículos (inclusive em verificação), com o checklist de completude.
+ * Vem do catálogo guardado em cache: uma chamada ao banco a cada 10 minutos,
+ * não uma por visita. Os dados técnicos vêm resumidos (sem o trecho de
+ * evidência); a ficha completa de um modelo usa buscarVeiculoPorSlug.
+ */
 export const buscarVeiculos = cache(async function buscarVeiculos(): Promise<Veiculo[]> {
+  await exigirSessao();
+  const catalogo = await lerCatalogo();
+  return montarVeiculos(catalogo.veiculos as unknown as VeiculoRow[], agruparTecnicos(catalogo));
+});
+
+/** Só os veículos com o pacote mínimo completo — usados nas páginas públicas. */
+export async function buscarVeiculosPublicados(): Promise<Veiculo[]> {
+  return (await buscarVeiculos()).filter((v) => v.completude?.publicavel);
+}
+
+/**
+ * Catálogo completo direto do banco, com tudo (evidências, detalhes das
+ * versões). Usado só na planilha do administrador; respeita as regras de
+ * acesso do banco (RLS) para o usuário logado.
+ */
+export async function buscarVeiculosCompletos(): Promise<Veiculo[]> {
   const supabase = await criarClienteSupabaseServidor();
   const [{ data, error }, tecnicos] = await Promise.all([
     supabase
@@ -94,20 +126,11 @@ export const buscarVeiculos = cache(async function buscarVeiculos(): Promise<Vei
     buscarDadosTecnicos(),
   ]);
   if (error) throw error;
-  return ((data as unknown as VeiculoRow[]) ?? []).map((row) => {
-    const v = mapearVeiculo(row);
-    v.tecnicos = tecnicos.get(v.id) ?? dadosTecnicosVazios();
-    v.completude = avaliarCompletude(v, v.tecnicos);
-    return v;
-  });
-});
-
-/** Só os veículos com o pacote mínimo completo — usados nas páginas públicas. */
-export async function buscarVeiculosPublicados(): Promise<Veiculo[]> {
-  return (await buscarVeiculos()).filter((v) => v.completude?.publicavel);
+  return montarVeiculos((data as unknown as VeiculoRow[]) ?? [], tecnicos);
 }
 
-export async function buscarVeiculoPorSlug(
+/** Ficha completa de um modelo (com evidências), direto do banco. */
+export const buscarVeiculoPorSlug = cache(async function buscarVeiculoPorSlug(
   slug: string,
 ): Promise<{ veiculo: Veiculo; tecnicos: DadosTecnicos } | null> {
   const supabase = await criarClienteSupabaseServidor();
@@ -124,11 +147,4 @@ export async function buscarVeiculoPorSlug(
   veiculo.tecnicos = tecnicos;
   veiculo.completude = avaliarCompletude(veiculo, tecnicos);
   return { veiculo, tecnicos };
-}
-
-export async function listarSlugsDeVeiculos(): Promise<string[]> {
-  const supabase = await criarClienteSupabaseServidor();
-  const { data, error } = await supabase.from("veiculos").select("slug");
-  if (error) throw error;
-  return (data ?? []).map((r) => (r as { slug: string }).slug);
-}
+});
