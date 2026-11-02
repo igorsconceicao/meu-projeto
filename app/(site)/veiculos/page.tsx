@@ -167,14 +167,14 @@ export default async function PaginaVeiculos({
                       <li key={v.id}>
                         <Link
                           href={`/veiculos/${v.slug}`}
-                          className="grid grid-cols-2 gap-x-3 gap-y-3 px-4 py-3 hover:bg-accent md:grid-cols-[2fr_1fr_1.3fr_1.3fr_1fr_1fr] md:items-center"
+                          className="lv-linha"
                         >
                           <span className="col-span-2 flex items-center gap-3 md:col-span-1">
                             {porCategoria ? (
                               <LogoMontadora nome={v.marca} slug={v.montadoraSlug} logotipoUrl={v.montadora?.logotipoUrl ?? null} tamanho="sm" />
                             ) : null}
                             <span className="min-w-0">
-                              <span className="block text-[11px] uppercase tracking-wider text-muted-foreground">
+                              <span className="lv-sup">
                                 {porCategoria ? v.marca : v.categoria}
                               </span>
                               <span className="block font-medium">{v.nomeComercial}</span>
@@ -203,9 +203,8 @@ export default async function PaginaVeiculos({
 /** Célula da lista: no celular mostra o rótulo em cima; no computador o cabeçalho faz esse papel. */
 function Celula({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
-    <span className="min-w-0 text-sm">
-      <span className="block text-[11px] text-muted-foreground md:hidden">{rotulo}</span>
-      <span className={typeof children === "string" ? "line-clamp-2" : undefined}>{children}</span>
+    <span className="lv-cel" data-rotulo={rotulo}>
+      {typeof children === "string" ? <span className="line-clamp-2">{children}</span> : children}
     </span>
   );
 }
@@ -215,11 +214,11 @@ function NomesVersoes({ nomes }: { nomes: string[] }) {
   if (!nomes.length) return null;
   return (
     <span className="mt-1 flex flex-wrap items-center gap-1">
-      <span className="rounded bg-primary/10 px-1.5 py-px text-[11px] font-semibold text-primary">
+      <span className="lv-qtd">
         {nomes.length === 1 ? "Versão única" : `${nomes.length} versões`}
       </span>
       {nomes.map((n) => (
-        <span key={n} className="rounded border px-1.5 py-px text-[11px] text-muted-foreground">
+        <span key={n} className="lv-chip">
           {n}
         </span>
       ))}
@@ -228,5 +227,5 @@ function NomesVersoes({ nomes }: { nomes: string[] }) {
 }
 
 function Vazio() {
-  return <span className="text-xs text-muted-foreground">sem info</span>;
+  return <span className="lv-vazio">sem info</span>;
 }

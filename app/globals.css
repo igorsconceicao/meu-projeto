@@ -99,6 +99,44 @@
   }
 }
 
+/* Peças repetidas centenas de vezes nas listas: classe curta = página mais leve. */
+@layer components {
+  .mini-estado {
+    @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium;
+  }
+  .mini-ponto {
+    @apply h-1.5 w-1.5 rounded-full bg-current;
+  }
+  .resumo-proj {
+    @apply grid grid-cols-[auto_auto] items-center justify-start gap-x-2 gap-y-1 text-[11px];
+  }
+  .lv-linha {
+    @apply grid grid-cols-2 gap-x-3 gap-y-3 px-4 py-3 hover:bg-accent md:grid-cols-[2fr_1fr_1.3fr_1.3fr_1fr_1fr] md:items-center;
+  }
+  .lv-sup {
+    @apply block text-[11px] uppercase tracking-wider text-muted-foreground;
+  }
+  .lv-qtd {
+    @apply rounded bg-primary/10 px-1.5 py-px text-[11px] font-semibold text-primary;
+  }
+  .lv-chip {
+    @apply rounded border px-1.5 py-px text-[11px] text-muted-foreground;
+  }
+  .lv-cel {
+    @apply min-w-0 text-sm;
+  }
+  /* No celular cada célula mostra o próprio rótulo (vem do atributo, não do HTML). */
+  @media (max-width: 767px) {
+    .lv-cel::before {
+      content: attr(data-rotulo);
+      @apply block text-[11px] text-muted-foreground;
+    }
+  }
+  .lv-vazio {
+    @apply text-xs text-muted-foreground;
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;

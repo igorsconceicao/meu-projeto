@@ -16,8 +16,8 @@ const ESTILO: Record<EstadoConectividade, { rotulo: string; classe: string; Icon
 export function MiniEstado({ estado, className, leve }: { estado: EstadoConectividade; className?: string; leve?: boolean }) {
   const { rotulo, classe, Icone } = ESTILO[estado];
   return (
-    <span className={cn("inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium", classe, className)}>
-      {leve ? <span className="h-1.5 w-1.5 rounded-full bg-current" /> : <Icone className="h-3 w-3" />}
+    <span className={cn("mini-estado", classe, className)}>
+      {leve ? <span className="mini-ponto" /> : <Icone className="h-3 w-3" />}
       {rotulo}
     </span>
   );
@@ -36,7 +36,7 @@ export function ResumoProjecao({
   if (geral === "nao_identificado") return <MiniEstado estado="nao_identificado" leve />;
   if (geral === "nao_disponivel") return <MiniEstado estado="nao_disponivel" leve />;
   return (
-    <span className="grid grid-cols-[auto_auto] items-center justify-start gap-x-2 gap-y-1 text-[11px]">
+    <span className="resumo-proj">
       <span className="text-muted-foreground">Cabo</span>
       <MiniEstado estado={cabo} leve />
       <span className="text-muted-foreground">Sem fio</span>
